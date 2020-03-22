@@ -1,20 +1,43 @@
 #include "headers.h"
+#include <time.h>
 
-/* Modify this file as needed*/
-int remainingtime;
+// Process running and remaining times
+int runningtime, remainingtime;
 
-int main(int agrc, char * argv[])
+int main(int argc, char * argv[])
 {
+    // Establish communication with the clock module
     initClk();
-    
-    //TODO it needs to get the remaining time from somewhere
-    //remainingtime = ??;
+
+    // Check if only one other argument (running time) is passed to the process other than its name
+    if (argc == 2) {
+
+        // Set the process running time to equal that passed to it
+        runningtime = atoi(argv[1]);
+        ///////printf("Process intended running time is: %d.\n", runningtime);
+
+        // Initialize the remaining time with the running time
+        remainingtime = runningtime;
+    }
+    else {
+        // If a wrong number of arguments is passed, print out this message to the user and return with 1
+        printf("Expected number of passed arguments is 2.\n");
+        return 1;
+    }
+
+    // As long as the process has not finished its intended running time, keep running
     while (remainingtime > 0)
     {
-        // remainingtime = ??;
+        // Get the total number of clocks the process took being processed so far
+        clock_t totalClocks = clock();
+        ///////printf("Total processing time taken: %li second(s).\n", (totalClocks/CLOCKS_PER_SEC));
+
+        // Calculate the new remaining time
+        remainingtime = runningtime - ((int) (totalClocks/CLOCKS_PER_SEC));
+        ///////printf("Remaining time: %d second(s).\n", remainingtime);
     }
     
+    // Release resources of communication with the clock module
     destroyClk(false);
-    
     return 0;
 }
