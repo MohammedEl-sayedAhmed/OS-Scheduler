@@ -36,7 +36,7 @@ void readInputFile()
 {
     FILE *inputFile; 
     inputFile = fopen("processes.txt", "r"); // open the input file in a read mode
-    char intputFileLine[20]; // assign the lines in the txt file to processData
+    char intputFileLine[20]; // assign the lines in the txt file to intputFileLine
 
    while (!feof(inputFile) ) {
 
