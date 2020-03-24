@@ -1,11 +1,20 @@
 #include <stdio.h>
-
+#include <unistd.h>
 #include "headers.h"
 #include "ProcessFromInput.h"
 
 
 void clearResources(int);
+
 void readInputFile();
+
+pid_t schedulerInit(char * argv[]);
+
+
+
+
+
+
 int main(int argc, char * argv[])
 {
     signal(SIGINT, clearResources);
@@ -61,8 +70,9 @@ void readInputFile()
             printf("The arrival time is %d\n", myNewProcess->arrivalTime);
             printf("The run time is %d \n", myNewProcess->runTime);
             printf("The priority is %d \n\n\n", myNewProcess->priority);
-
-
+            
+            // enqueue myNewProcess in processQueue >> from rahma 
+            // enqueue(processQueue , myNewProcess);
         }
         else{ // malhash lazma, just 7antafa 
 
@@ -70,7 +80,33 @@ void readInputFile()
             fgets(notProcessData, sizeof(notProcessData), inputFile);  
         }
     } 
+    fclose(inputFile);
 }
 
+
+
+pid_t schedulerInit(char * argv[]){
+
+    pid_t schedulerPID = fork();
+
+    if (schedulerPID == -1){
+
+        perror("Error in scheduler fork\n");
+        exit(1);
+    }
+
+    else if (schedulerPID == 0){
+
+        execv("scheduler.out", argv);
+        printf("I am the child -- scheduler forked\n");
+
+    }
+    else {
+        // parent
+        return schedulerPID;
+    }
+
+
+}
 
     
