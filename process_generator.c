@@ -19,9 +19,34 @@ int main(int argc, char * argv[])
 {
     signal(SIGINT, clearResources);
     // TODO Initialization
+
     // 1. Read the input files.
     readInputFile();
+
     // 2. Ask the user for the chosen scheduling algorithm and its parameters, if there are any.
+
+    //SRTN shortest remaining time next , HPF -heighest priority first -non permitive- , RR Round Robin
+
+    char  scheduling_algorithm[5];
+    int Quantum;
+    
+    printf("SRTN,HPF,RR are the available scheduling algorithms ,choose one of them \n");
+    scanf ("%s",scheduling_algorithm);
+    
+    while(strcmp(scheduling_algorithm,"RR")!=0 && strcmp(scheduling_algorithm,"STRN")!=0 && strcmp(scheduling_algorithm,"HPF")!=0)
+    {
+        printf ("Error ,You must choose one of the provided algorithms only \n");
+        printf("SRTN,HPF,RR are the available scheduling algorithms ,choose one of them \n");
+        scanf ("%s",scheduling_algorithm);
+    }
+    if(strcmp(scheduling_algorithm, "RR") == 0)
+    {
+        printf ("Enter Quantum \n");
+        scanf("%d",&Quantum);
+    }
+
+
+
     // 3. Initiate and create the scheduler and clock processes.
     // 4. Use this function after creating the clock process to initialize clock
     initClk();
