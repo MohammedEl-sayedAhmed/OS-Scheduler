@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include "headers.h"
-#include "ProcessFromInput.h"
+#include "PCB.h"
 #include "Queue.h"
 
 
@@ -11,7 +11,7 @@ void readInputFile(Queue* arrivedProcessesQueue);
 
 pid_t createScheduler(char * const * argv);
 pid_t createClock();
-void sendProcessAtAppropTime (Queue* arrivedProcessesQueue,ProcessFromInput* arrivedProcess );
+void sendProcessAtAppropTime (Queue* arrivedProcessesQueue,PCB* arrivedProcess );
 
 
 
@@ -58,7 +58,7 @@ int main(int argc, char * argv[])
     
     // TODO Generation Main Loop
     // 5. Create a data structure for processes and provide it with its parameters.
-    ProcessFromInput* arrivedProcess;
+    PCB* arrivedProcess;
 
     // 6. Send the information to the scheduler at the appropriate time.
     sendProcessAtAppropTime(arrivedProcessesQueue,arrivedProcess);
@@ -86,7 +86,7 @@ void readInputFile(Queue* arrivedProcessesQueue)
         if (intputFileLine[0] != '#'){ // if it is not #, then it is a process
 
             // this is a process -- save it in whatever stuff (will be a queue later)
-            ProcessFromInput * myNewProcess = (ProcessFromInput *) malloc(sizeof(ProcessFromInput)); // malloc >> memory allocation, it is like new in c++
+            PCB * myNewProcess = (PCB *) malloc(sizeof(PCB)); // malloc >> memory allocation, it is like new in c++
           
             // save the ID first, because there is a bug that makes the ID= 0 many times so we want to check for it
             // Also use atoi; to convert the string to int -- like %d in fscanf 
@@ -105,7 +105,7 @@ void readInputFile(Queue* arrivedProcessesQueue)
             
             // enqueue myNewProcess in arrivedProcessesQueue
             //Queue arrivedProcessesQueue;
-            queueInit(&arrivedProcessesQueue, sizeof(ProcessFromInput));
+            queueInit(&arrivedProcessesQueue, sizeof(PCB));
             enqueue(&arrivedProcessesQueue , myNewProcess);
         }
         else{ // malhash lazma, just 7antafa 
@@ -172,7 +172,7 @@ pid_t createClock(){
 
 
 
-void sendProcessAtAppropTime (Queue* arrivedProcessesQueue,ProcessFromInput* arrivedProcess ){
+void sendProcessAtAppropTime (Queue* arrivedProcessesQueue,PCB* arrivedProcess ){
 
 	while (getQueueSize(arrivedProcessesQueue) != 0){
 
