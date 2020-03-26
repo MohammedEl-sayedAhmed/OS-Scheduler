@@ -3,6 +3,8 @@
 
 void resumeProcess(PCB* processPCB, FILE* outLogFile);
 void startProcess(PCB* processPCB, FILE* outLogFile);
+void stopProcess(PCB* processPCB, FILE* outLogFile);
+void handler(int signum);
 
 int main(int argc, char * argv[])
 {
@@ -67,4 +69,30 @@ void startProcess(PCB* processPCB, FILE* outLogFile) {
         fprintf(outLogFile, "At time %d process %d started arr %d total %d remain %d wait %d\n", currTime, processPCB->newArrivedProcess.id, processPCB->newArrivedProcess.arrivalTime, processPCB->newArrivedProcess.runTime, processPCB->remainingTime, processPCB->waitingTime);
 
     }
+}
+
+void stopProcess(PCB* processPCB, FILE* outLogFile) {
+
+    //send a stop signal to the process
+    kill(processPCB->pid, SIGSTOP);
+
+    // Calculate and update the process remaining time
+    int currTime = getClk();
+    processPCB->remainingTime = (processPCB->newArrivedProcess.runTime) -  (currTime - processPCB->newArrivedProcess.arrivalTime - processPCB->waitingTime);
+
+    // Print the "starting" line in the output log file
+    fprintf(outLogFile, "At time %d process %d stopped arr %d total %d remain %d wait %d\n", currTime, processPCB->newArrivedProcess.id, processPCB->newArrivedProcess.arrivalTime, processPCB->newArrivedProcess.runTime, processPCB->remainingTime, processPCB->waitingTime);
+}
+
+void hanlder(int signum) {
+    
+    int pid, stat_loc;
+    printf("\nfrom handler my Id: %d\n",getpid() ); 
+
+    printf("Child has sent a SIGCHLD signal #%d\n",signum);
+
+    pid = wait(&stat_loc);
+    if(WIFEXITED(stat_loc))
+        printf("\nA child with pid %d terminated with exit code %d\n", pid, WEXITSTATUS(stat_loc));
+    
 }
