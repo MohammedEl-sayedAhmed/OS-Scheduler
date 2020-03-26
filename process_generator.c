@@ -15,16 +15,12 @@ void sendProcessAtAppropTime (Queue* arrivedProcessesQueue,ProcessFromInput* arr
 
 
 
-
-
-
 int main(int argc, char * argv[])
 {
     signal(SIGINT, clearResources);
     // TODO Initialization
     Queue* arrivedProcessesQueue;
     
-
     // 1. Read the input files.
     readInputFile(arrivedProcessesQueue);
 
@@ -51,24 +47,22 @@ int main(int argc, char * argv[])
     }
 
 
-
     // 3. Initiate and create the scheduler and clock processes.
-    // define parameter list
-    char * argv[] = {"scheduler.out", scheduling_algorithm, Quantum , NULL};
+    // define the argv array 
+    char * argv[] = {"scheduler.out", scheduling_algorithm, Quantum , NULL}; 
     pid_t schedulerPID = createScheduler(argv);
     createClock();
 
     // 4. Use this function after creating the clock process to initialize clock
     initClk();
     
-    
     // TODO Generation Main Loop
     // 5. Create a data structure for processes and provide it with its parameters.
     ProcessFromInput* arrivedProcess;
+
     // 6. Send the information to the scheduler at the appropriate time.
     sendProcessAtAppropTime(arrivedProcessesQueue,arrivedProcess);
-    
-    //sendProcessAtAppropTime(arrivedProcessesQueue, )
+
     // 7. Clear clock resources
     destroyClk(true);
 }
@@ -78,7 +72,7 @@ void clearResources(int signum)
     //TODO Clears all resources in case of interruption
 }
 
-//1. Read the input files.
+
 void readInputFile(Queue* arrivedProcessesQueue)
 {
     FILE *inputFile; 
@@ -122,7 +116,6 @@ void readInputFile(Queue* arrivedProcessesQueue)
     } 
     fclose(inputFile);
 }
-
 
 
 pid_t createScheduler(char * const * argv){
@@ -177,6 +170,8 @@ pid_t createClock(){
     return clockPID;
 }
 
+
+
 void sendProcessAtAppropTime (Queue* arrivedProcessesQueue,ProcessFromInput* arrivedProcess ){
 
 	while (getQueueSize(arrivedProcessesQueue) != 0){
@@ -190,7 +185,6 @@ void sendProcessAtAppropTime (Queue* arrivedProcessesQueue,ProcessFromInput* arr
 		sleep(sleepTime);
 
 	}
-
 }
 
     
