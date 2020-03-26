@@ -2,13 +2,15 @@
 #include <unistd.h>
 #include "headers.h"
 #include "ProcessFromInput.h"
+#include "Queue.h"
 
 
 void clearResources(int);
 
 void readInputFile();
 
-pid_t schedulerInit(char * argv[]);
+pid_t createScheduler(char * const * argv);
+pid_t createClock();
 
 
 
@@ -48,6 +50,11 @@ int main(int argc, char * argv[])
 
 
     // 3. Initiate and create the scheduler and clock processes.
+    // define parameter list
+    char * argv[] = {"scheduler.out\0", scheduling_algorithm, Quantum , NULL};
+    pid_t schedulerPID = createScheduler(argv);
+    createClock();
+
     // 4. Use this function after creating the clock process to initialize clock
     initClk();
     // To get time use this
@@ -91,13 +98,15 @@ void readInputFile()
 
             fscanf(inputFile , "%d %d %d", &myNewProcess->arrivalTime, &myNewProcess->runTime , &myNewProcess->priority); // read the process data and save it proberly to the pcb struct object
 
-            printf("The ID is %d\n", myNewProcess->id);
+            /*printf("The ID is %d\n", myNewProcess->id);
             printf("The arrival time is %d\n", myNewProcess->arrivalTime);
             printf("The run time is %d \n", myNewProcess->runTime);
-            printf("The priority is %d \n\n\n", myNewProcess->priority);
+            printf("The priority is %d \n\n\n", myNewProcess->priority);*/
             
-            // enqueue myNewProcess in processQueue >> from rahma 
-            // enqueue(processQueue , myNewProcess);
+            // enqueue myNewProcess in arrivedProcessesQueue
+            Queue arrivedProcessesQueue;
+            queueInit(&arrivedProcessesQueue, sizeof(ProcessFromInput));
+            enqueue(&arrivedProcessesQueue , myNewProcess);
         }
         else{ // malhash lazma, just 7antafa 
 
@@ -110,7 +119,7 @@ void readInputFile()
 
 
 
-pid_t schedulerInit(char * argv[]){
+pid_t createScheduler(char * const * argv){
 
     pid_t schedulerPID = fork();
 
@@ -122,16 +131,44 @@ pid_t schedulerInit(char * argv[]){
 
     else if (schedulerPID == 0){
 
-        execv("scheduler.out", argv);
-        printf("I am the child -- scheduler forked\n");
-
+         printf("creating scheduler process\n");
+        int forkResult;
+        forkResult = execv("./scheduler.out", argv); // argv will be the paramter list defined in the main
+        
+        if (forkResult == -1){
+            printf("Failed to create scheduler process\n");
+        }
+        else if(forkResult == 0){
+            printf("Scheduler process created successfully!! \n");
+        }
     }
-    else {
-        // parent
-        return schedulerPID;
+    return schedulerPID;  
+}
+
+
+pid_t createClock(){
+
+    pid_t clockPID;
+    
+    if (clockPID == -1){
+
+        perror("Error in Clock fork\n");
+        exit(1);
     }
+    else if (clockPID == 0){
 
+        printf("creating clock process\n");
 
+        int forkResult;
+        forkResult = execvp("./clk.out",NULL);
+        if (forkResult == -1){
+            printf("Failed to create clock process\n");
+        }
+        else if (forkResult == 0){
+            printf("Clock process created successfully!! \n");
+        }
+    }
+    return clockPID;
 }
 
     
