@@ -8,11 +8,12 @@
 int main()
 {
     Queue q;
-    ProcessFromInput myPCB1;
-    myPCB1.arrivalTime = 3;
-    myPCB1.id = 1;
-    myPCB1.priority = 2;
-    myPCB1.runTime = 6;
+    //ProcessFromInput myPCB1;
+    ProcessFromInput * myPCB1 = (ProcessFromInput *) malloc(sizeof(ProcessFromInput));
+    myPCB1->arrivalTime = 3;
+    myPCB1->id = 1;
+    myPCB1->priority = 2;
+    myPCB1->runTime = 6;
 
     ProcessFromInput myPCB2;
     myPCB2.arrivalTime = 5;
@@ -30,9 +31,9 @@ int main()
     ProcessFromInput peekPCB;
 
 
-    queueInit(&q, sizeof(myPCB1));
+    queueInit(&q, sizeof(ProcessFromInput));
 
-    enqueue(&q, &myPCB1);
+    enqueue(&q, myPCB1);
     enqueue(&q, &myPCB2);
     enqueue(&q, &myPCB3);
 
@@ -70,6 +71,7 @@ int main()
 
     int size2 = getQueueSize(&q);
     printf("The Queue size 2  is %d \n\n\n", size2);
+
 
     return 0;
 }

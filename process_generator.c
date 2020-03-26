@@ -7,10 +7,11 @@
 
 void clearResources(int);
 
-void readInputFile();
+void readInputFile(Queue* arrivedProcessesQueue);
 
 pid_t createScheduler(char * const * argv);
 pid_t createClock();
+void sendProcessAtAppropTime (Queue* arrivedProcessesQueue,ProcessFromInput* arrivedProcess );
 
 
 
@@ -21,9 +22,11 @@ int main(int argc, char * argv[])
 {
     signal(SIGINT, clearResources);
     // TODO Initialization
+    Queue* arrivedProcessesQueue;
+    
 
     // 1. Read the input files.
-    readInputFile();
+    readInputFile(arrivedProcessesQueue);
 
     // 2. Ask the user for the chosen scheduling algorithm and its parameters, if there are any.
 
@@ -51,18 +54,21 @@ int main(int argc, char * argv[])
 
     // 3. Initiate and create the scheduler and clock processes.
     // define parameter list
-    char * argv[] = {"scheduler.out\0", scheduling_algorithm, Quantum , NULL};
+    char * argv[] = {"scheduler.out", scheduling_algorithm, Quantum , NULL};
     pid_t schedulerPID = createScheduler(argv);
     createClock();
 
     // 4. Use this function after creating the clock process to initialize clock
     initClk();
-    // To get time use this
-    int x = getClk();
-    printf("current time is %d\n", x);
+    
+    
     // TODO Generation Main Loop
     // 5. Create a data structure for processes and provide it with its parameters.
+    ProcessFromInput* arrivedProcess;
     // 6. Send the information to the scheduler at the appropriate time.
+    sendProcessAtAppropTime(arrivedProcessesQueue,arrivedProcess);
+    
+    //sendProcessAtAppropTime(arrivedProcessesQueue, )
     // 7. Clear clock resources
     destroyClk(true);
 }
@@ -73,7 +79,7 @@ void clearResources(int signum)
 }
 
 //1. Read the input files.
-void readInputFile()
+void readInputFile(Queue* arrivedProcessesQueue)
 {
     FILE *inputFile; 
     inputFile = fopen("processes.txt", "r"); // open the input file in a read mode
@@ -104,7 +110,7 @@ void readInputFile()
             printf("The priority is %d \n\n\n", myNewProcess->priority);*/
             
             // enqueue myNewProcess in arrivedProcessesQueue
-            Queue arrivedProcessesQueue;
+            //Queue arrivedProcessesQueue;
             queueInit(&arrivedProcessesQueue, sizeof(ProcessFromInput));
             enqueue(&arrivedProcessesQueue , myNewProcess);
         }
@@ -169,6 +175,22 @@ pid_t createClock(){
         }
     }
     return clockPID;
+}
+
+void sendProcessAtAppropTime (Queue* arrivedProcessesQueue,ProcessFromInput* arrivedProcess ){
+
+	while (getQueueSize(arrivedProcessesQueue) != 0){
+
+		int currTime = getClk();
+        printf("current time is %d\n", currTime);
+
+		int currProcessArrTime = arrivedProcess->arrivalTime;
+		int sleepTime = currProcessArrTime - currTime;
+
+		sleep(sleepTime);
+
+	}
+
 }
 
     
