@@ -1,6 +1,6 @@
 #pragma once 
 
-#include <ProcessFromInput.h>
+#include "ProcessFromInput.h"
 #include <stdlib.h>
 
 typedef struct 
@@ -9,8 +9,9 @@ typedef struct
     pid_t pid;
     int startTime;
     int remainingTime;
+    int waitingTime;
     int finishTime;
-    enum {STARTED, RESUMED, STOPED, FINISHED};
+ //   enum {STARTED, RESUMED, STOPED, FINISHED};
 
 }   PCB;
 

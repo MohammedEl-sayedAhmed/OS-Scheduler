@@ -22,7 +22,7 @@ int main(int argc, char * argv[])
     else {
         // If a wrong number of arguments is passed, print out this message to the user and return with 1
         printf("Expected number of passed arguments is 2.\n");
-        return 1;
+        exit(1);
     }
 
     // As long as the process has not finished its intended running time, keep running
@@ -36,8 +36,11 @@ int main(int argc, char * argv[])
         remainingtime = runningtime - ((int) (totalClocks/CLOCKS_PER_SEC));
         ///////printf("Remaining time: %d second(s).\n", remainingtime);
     }
+
+    ///////printf("Process finished.\n");
+
     
     // Release resources of communication with the clock module
     destroyClk(false);
-    return 0;
+    exit(0);
 }
