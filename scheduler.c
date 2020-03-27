@@ -3,8 +3,6 @@
 
 void resumeProcess(PCB* processPCB, FILE* outLogFile);
 void startProcess(PCB* processPCB, FILE* outLogFile);
-void stopProcess(PCB* processPCB, FILE* outLogFile);
-void handler(int signum);
 
 int main(int argc, char * argv[])
 {
@@ -33,10 +31,10 @@ void resumeProcess(PCB* processPCB, FILE* outLogFile) {
 
     // Calculate and update the process waiting time
     int currTime = getClk();
-    processPCB->waitingTime = (currTime - processPCB->newArrivedProcess.arrivalTime) - (processPCB->newArrivedProcess.runTime - processPCB->remainingTime);
+    processPCB->waitingTime = (currTime - processPCB->arrivalTime) - (processPCB->runTime - processPCB->remainingTime);
 
     // Print the "resuming" line in the output log file
-    fprintf(outLogFile, "At time %d process %d resumed arr %d total %d remain %d wait %d\n", currTime, processPCB->newArrivedProcess.id, processPCB->newArrivedProcess.arrivalTime, processPCB->newArrivedProcess.runTime, processPCB->remainingTime, processPCB->waitingTime);
+    fprintf(outLogFile, "At time %d process %d resumed arr %d total %d remain %d wait %d\n", currTime, processPCB->id, processPCB->arrivalTime, processPCB->runTime, processPCB->remainingTime, processPCB->waitingTime);
 
 }
 
@@ -51,7 +49,7 @@ void startProcess(PCB* processPCB, FILE* outLogFile) {
     else if (pid == 0)
     {
         char str[100];
-        sprintf(str, "%d", processPCB->newArrivedProcess.runTime);
+        sprintf(str, "%d", processPCB->runTime);
         char *argv[] = { "./process.out", str};
         execve(argv[0], &argv[0], NULL);
     }
@@ -61,38 +59,12 @@ void startProcess(PCB* processPCB, FILE* outLogFile) {
         // Update the process PCB fields as appropriate
         processPCB->pid = pid;
         processPCB->startTime = currTime;
-        processPCB->remainingTime = processPCB->newArrivedProcess.runTime;
-        processPCB->waitingTime = processPCB->newArrivedProcess.arrivalTime - currTime;
+        processPCB->remainingTime = processPCB->runTime;
+        processPCB->waitingTime = processPCB->arrivalTime - currTime;
         //printf("Process created successfully.\n");
 
         // Print the "starting" line in the output log file
-        fprintf(outLogFile, "At time %d process %d started arr %d total %d remain %d wait %d\n", currTime, processPCB->newArrivedProcess.id, processPCB->newArrivedProcess.arrivalTime, processPCB->newArrivedProcess.runTime, processPCB->remainingTime, processPCB->waitingTime);
+        fprintf(outLogFile, "At time %d process %d started arr %d total %d remain %d wait %d\n", currTime, processPCB->id, processPCB->arrivalTime, processPCB->runTime, processPCB->remainingTime, processPCB->waitingTime);
 
     }
-}
-
-void stopProcess(PCB* processPCB, FILE* outLogFile) {
-
-    //send a stop signal to the process
-    kill(processPCB->pid, SIGSTOP);
-
-    // Calculate and update the process remaining time
-    int currTime = getClk();
-    processPCB->remainingTime = (processPCB->newArrivedProcess.runTime) -  (currTime - processPCB->newArrivedProcess.arrivalTime - processPCB->waitingTime);
-
-    // Print the "starting" line in the output log file
-    fprintf(outLogFile, "At time %d process %d stopped arr %d total %d remain %d wait %d\n", currTime, processPCB->newArrivedProcess.id, processPCB->newArrivedProcess.arrivalTime, processPCB->newArrivedProcess.runTime, processPCB->remainingTime, processPCB->waitingTime);
-}
-
-void hanlder(int signum) {
-    
-    int pid, stat_loc;
-    printf("\nfrom handler my Id: %d\n",getpid() ); 
-
-    printf("Child has sent a SIGCHLD signal #%d\n",signum);
-
-    pid = wait(&stat_loc);
-    if(WIFEXITED(stat_loc))
-        printf("\nA child with pid %d terminated with exit code %d\n", pid, WEXITSTATUS(stat_loc));
-    
 }
