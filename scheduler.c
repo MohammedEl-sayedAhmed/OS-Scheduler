@@ -1,5 +1,14 @@
 #include "headers.h"
 #include "PCB.h"
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <ctype.h>
+#include <signal.h>
 
 void resumeProcess(PCB* processPCB, FILE* outLogFile);
 void startProcess(PCB* processPCB, FILE* outLogFile);
@@ -67,4 +76,39 @@ void startProcess(PCB* processPCB, FILE* outLogFile) {
         fprintf(outLogFile, "At time %d process %d started arr %d total %d remain %d wait %d\n", currTime, processPCB->id, processPCB->arrivalTime, processPCB->runTime, processPCB->remainingTime, processPCB->waitingTime);
 
     }
+}
+
+
+struct msgbuff
+{
+   long mtype;
+//comment :immm ,I need to make sure from being (data) a pointer .
+    PCB* data;
+};
+
+void Recive_msg(struct msgbuff message)
+{   
+//comment:get msg_queue_id which has same key as msg_queue in processor generator
+   key_t key=13245;
+   key_t msgqid = msgget(key, 0644); 
+
+//comment:Making sure from validity of msg_id :
+    if(msgqid == -1)
+    perror("Invalid up_msgid");
+    else
+    printf("msgid=%d \n",msgqid);
+   
+    int rec_val;
+    pid_t  pid=getpid();
+/* receive all types of messages */
+//comment:immm ,I don't remember why we put pid of this process here ..in the following line !
+    rec_val = msgrcv(msgqid, &message, sizeof(message.data),pid, !IPC_NOWAIT);
+
+    if(rec_val == -1)
+        perror("Error in receive");
+    else
+//comment:print (For example)...mtype,startTime,priority of a message .
+        printf("\nMessage type received: %ld \n",message.mtype);
+        printf("\nMessage type received: %d \n",message.data->startTime);
+        printf("\nMessage type received: %d \n",message.data->priority);
 }
