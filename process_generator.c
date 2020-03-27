@@ -7,11 +7,14 @@
 
 void clearResources(int);
 
-void readInputFile(Queue* arrivedProcessesQueue);
+void readInputFile();
 
 pid_t createScheduler(char * const * argv);
 pid_t createClock();
-void sendProcessAtAppropTime (Queue* arrivedProcessesQueue,PCB* arrivedProcess );
+void sendProcessAtAppropTime (Queue* arrivedProcessesQueue,PCB* arrivedProcess);
+
+
+
 
 
 
@@ -20,9 +23,9 @@ int main(int argc, char * argv[])
     signal(SIGINT, clearResources);
     // TODO Initialization
     Queue* arrivedProcessesQueue;
-    
+
     // 1. Read the input files.
-    readInputFile(arrivedProcessesQueue);
+    readInputFile();
 
     // 2. Ask the user for the chosen scheduling algorithm and its parameters, if there are any.
 
@@ -47,21 +50,28 @@ int main(int argc, char * argv[])
     }
 
 
+
+    char QuantumStr[100];
+    sprintf(QuantumStr, "%d", Quantum); ///// etcommittyyy b2aa
+
+
     // 3. Initiate and create the scheduler and clock processes.
-    // define the argv array 
-    char * argv[] = {"scheduler.out", scheduling_algorithm, Quantum , NULL}; 
-    pid_t schedulerPID = createScheduler(argv);
+    // define parameter list
+
+    char * param[] = {"scheduler", scheduling_algorithm, QuantumStr , NULL};
+    pid_t schedulerPID = createScheduler(param);
     createClock();
 
     // 4. Use this function after creating the clock process to initialize clock
-    initClk();
-    
+    //initClk();
+
+
     // TODO Generation Main Loop
     // 5. Create a data structure for processes and provide it with its parameters.
     PCB* arrivedProcess;
 
     // 6. Send the information to the scheduler at the appropriate time.
-    sendProcessAtAppropTime(arrivedProcessesQueue,arrivedProcess);
+    sendProcessAtAppropTime (arrivedProcessesQueue,arrivedProcess);
 
     // 7. Clear clock resources
     destroyClk(true);
@@ -72,8 +82,8 @@ void clearResources(int signum)
     //TODO Clears all resources in case of interruption
 }
 
-
-void readInputFile(Queue* arrivedProcessesQueue)
+//1. Read the input files.
+void readInputFile()
 {
     FILE *inputFile; 
     inputFile = fopen("processes.txt", "r"); // open the input file in a read mode
@@ -86,27 +96,27 @@ void readInputFile(Queue* arrivedProcessesQueue)
         if (intputFileLine[0] != '#'){ // if it is not #, then it is a process
 
             // this is a process -- save it in whatever stuff (will be a queue later)
-            PCB * myNewProcess = (PCB *) malloc(sizeof(PCB)); // malloc >> memory allocation, it is like new in c++
+            PCB * myNewPCB = (PCB *) malloc(sizeof(PCB)); // malloc >> memory allocation, it is like new in c++
           
             // save the ID first, because there is a bug that makes the ID= 0 many times so we want to check for it
             // Also use atoi; to convert the string to int -- like %d in fscanf 
-            myNewProcess->id = atoi(intputFileLine); 
+            myNewPCB->id = atoi(intputFileLine); 
 
-            if (myNewProcess->id == 0){
+            if (myNewPCB->id == 0){
                 continue; // to skip the 0 process id that comes in between
             }
 
-            fscanf(inputFile , "%d %d %d", &myNewProcess->arrivalTime, &myNewProcess->runTime , &myNewProcess->priority); // read the process data and save it proberly to the pcb struct object
+            fscanf(inputFile , "%d %d %d", &myNewPCB->arrivalTime, &myNewPCB->runTime , &myNewPCB->priority); // read the process data and save it proberly to the pcb struct object
 
-            /*printf("The ID is %d\n", myNewProcess->id);
-            printf("The arrival time is %d\n", myNewProcess->arrivalTime);
-            printf("The run time is %d \n", myNewProcess->runTime);
-            printf("The priority is %d \n\n\n", myNewProcess->priority);*/
+            /*printf("The ID is %d\n", myNewPCB->id);
+            printf("The arrival time is %d\n", myNewPCB->arrivalTime);
+            printf("The run time is %d \n", myNewPCB->runTime);
+            printf("The priority is %d \n\n\n", myNewPCB->priority);*/
             
-            // enqueue myNewProcess in arrivedProcessesQueue
-            //Queue arrivedProcessesQueue;
+            // enqueue myNewPCB in arrivedProcessesQueue
+            Queue arrivedProcessesQueue;
             queueInit(&arrivedProcessesQueue, sizeof(PCB));
-            enqueue(&arrivedProcessesQueue , myNewProcess);
+            enqueue(&arrivedProcessesQueue , myNewPCB);
         }
         else{ // malhash lazma, just 7antafa 
 
@@ -116,6 +126,7 @@ void readInputFile(Queue* arrivedProcessesQueue)
     } 
     fclose(inputFile);
 }
+
 
 
 pid_t createScheduler(char * const * argv){
@@ -140,15 +151,22 @@ pid_t createScheduler(char * const * argv){
         else if(forkResult == 0){
             printf("Scheduler process created successfully!! \n");
         }
+        /*else if (forkResult == 1){
+            printf("Scheduler Parent!! \n");
+
+        }*/
     }
+    //
     return schedulerPID;  
 }
 
 
+
 pid_t createClock(){
+    printf("trying to  clock process\n");
 
     pid_t clockPID;
-    
+
     if (clockPID == -1){
 
         perror("Error in Clock fork\n");
@@ -159,7 +177,7 @@ pid_t createClock(){
         printf("creating clock process\n");
 
         int forkResult;
-        forkResult = execvp("./clk.out",NULL);
+        forkResult = execvp("./clk.out",NULL); // or execv not sure witt try it when it works 
         if (forkResult == -1){
             printf("Failed to create clock process\n");
         }
@@ -167,16 +185,16 @@ pid_t createClock(){
             printf("Clock process created successfully!! \n");
         }
     }
-    return clockPID;
+    printf("will retrun clockPID\n");
+    return clockPID;  
 }
-
-
 
 void sendProcessAtAppropTime (Queue* arrivedProcessesQueue,PCB* arrivedProcess ){
 
-	while (getQueueSize(arrivedProcessesQueue) != 0){
+	while (getQueueSize(&arrivedProcessesQueue) != 0){
 
 		int currTime = getClk();
+        //int currTime = 10;
         printf("current time is %d\n", currTime);
 
 		int currProcessArrTime = arrivedProcess->arrivalTime;
