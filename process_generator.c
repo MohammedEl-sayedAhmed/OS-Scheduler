@@ -1,22 +1,25 @@
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
+#include <string.h>
+#include <stdlib.h>
 #include <stdio.h>
+#include <ctype.h>
 #include <unistd.h>
+#include <signal.h>
 #include "headers.h"
 #include "PCB.h"
 #include "Queue.h"
 
-
-void clearResources(int);
+//comment:I make -key variable- generic ..I am not sure about how much this is goog.I made this to let both fns Send_msg  && clearResources see it .
+void clearResources(int signum);
+key_t key=13245; 
 
 void readInputFile();
 
 pid_t createScheduler(char * const * argv);
 pid_t createClock();
 void sendProcessAtAppropTime (Queue* arrivedProcessesQueue,PCB* arrivedProcess);
-
-
-
-
-
 
 int main(int argc, char * argv[])
 {
@@ -49,8 +52,6 @@ int main(int argc, char * argv[])
         scanf("%d",&Quantum);
     }
 
-
-
     char QuantumStr[100];
     sprintf(QuantumStr, "%d", Quantum); ///// etcommittyyy b2aa
 
@@ -77,9 +78,47 @@ int main(int argc, char * argv[])
     destroyClk(true);
 }
 
+
+//message buffer :
+struct msgbuff
+{
+    long mtype;
+    struct PCB* data;
+};
+
+//Sending messages function :
+void Send_msg(struct msgbuff message)
+{    
+//Creat resource -mailbox- (queue of messages)
+int msgqid = msgget(key,IPC_CREAT| 0644); // or msgget(12613, IPC_CREAT | 0644)
+//Making sure from validity of creation of resource
+if(msgqid == -1)
+perror("Invalid up_msgid");
+else
+printf("msgid=%d", msgqid);
+pid_t Pid=getpid();    
+message.mtype =Pid;  
+struct PCB * pointer_1;
+pointer_1=message.data;
+    
+int  send_val ;
+//comment:Need to make sure from this -(!IPC_NOWAIT) or (IPC_NOWAIT)-
+send_val = msgsnd(msgqid , &message,sizeof(message.data), !IPC_NOWAIT);
+
+    if(send_val == -1)
+        perror("Errror in send");
+    else 
+        printf("sent already");
+}
+
+//TODO Clears all resources in case of interruption
+//clearResources function :
 void clearResources(int signum)
 {
-    //TODO Clears all resources in case of interruption
+    printf("Resources are cleared now..\n");
+    int x = msgget(key,0644);
+    msgctl(x, IPC_RMID, (struct msqid_ds *) 0);
+    exit(0);
 }
 
 //1. Read the input files.
@@ -126,8 +165,6 @@ void readInputFile()
     } 
     fclose(inputFile);
 }
-
-
 
 pid_t createScheduler(char * const * argv){
 
