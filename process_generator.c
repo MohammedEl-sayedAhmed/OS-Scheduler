@@ -88,7 +88,7 @@ struct msgbuff
 };
 
 //Sending messages function :
-void Send_msg(struct msgbuff message)
+void Send_msg(struct PCB * pointer_1)
 {    
     //Creat resource -mailbox- (queue of messages)
     int msgqid = msgget(key,IPC_CREAT| 0644); // or msgget(12613, IPC_CREAT | 0644)
@@ -98,9 +98,10 @@ void Send_msg(struct msgbuff message)
     else
     printf("msgid=%d", msgqid);
     pid_t Pid=getpid();    
+    //comment:Not sure if this is right or wrong !    
+    struct msgbuff message;   
     message.mtype =Pid;  
-    struct PCB * pointer_1;
-    pointer_1=message.data;
+    message.data=pointer_1;
     
     int  send_val ;
     //comment:Need to make sure from this -(!IPC_NOWAIT) or (IPC_NOWAIT)-
