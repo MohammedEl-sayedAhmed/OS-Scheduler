@@ -203,6 +203,7 @@ pid_t createClock(){
     printf("trying to  clock process\n");
 
     pid_t clockPID;
+    clockPID = fork();
 
     if (clockPID == -1){
 
@@ -222,9 +223,12 @@ pid_t createClock(){
             printf("Clock process created successfully!! \n");
         }
     }
+    //sleep(0.5); // kont ba5leha t sleep 3shan kan mara ysht3'al w mara la2 f kont 3ayz astna showaya 3shan yban el forking bta3 el sched
     printf("will retrun clockPID\n");
+    //printf("The clkpID is %d\n", clockPID);
     return clockPID;  
 }
+
 
 void sendProcessAtAppropTime (Queue* arrivedProcessesQueue,PCB* arrivedProcess ){
 
