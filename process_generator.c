@@ -15,11 +15,11 @@
 void clearResources(int signum);
 key_t key=13245; 
 
-void readInputFile();
+void readInputFile(Queue* arrivedProcessesQueue);
 
 pid_t createScheduler(char * const * argv);
 pid_t createClock();
-void sendProcessAtAppropTime (Queue* arrivedProcessesQueue,PCB* arrivedProcess);
+void sendProcessAtAppropTime (Queue* arrivedProcessesQueue);
 
 int main(int argc, char * argv[])
 {
@@ -28,7 +28,7 @@ int main(int argc, char * argv[])
     Queue* arrivedProcessesQueue;
 
     // 1. Read the input files.
-    readInputFile();
+    readInputFile(arrivedProcessesQueue);
 
     // 2. Ask the user for the chosen scheduling algorithm and its parameters, if there are any.
 
@@ -69,10 +69,9 @@ int main(int argc, char * argv[])
 
     // TODO Generation Main Loop
     // 5. Create a data structure for processes and provide it with its parameters.
-    PCB* arrivedProcess;
 
     // 6. Send the information to the scheduler at the appropriate time.
-    sendProcessAtAppropTime (arrivedProcessesQueue,arrivedProcess);
+    sendProcessAtAppropTime (arrivedProcessesQueue);
     // send to scheduler
     //Send_msg(struct msgbuff message); // will be fixed 
 
@@ -124,7 +123,7 @@ void clearResources(int signum)
 }
 
 //1. Read the input files.
-void readInputFile()
+void readInputFile(Queue* arrivedProcessesQueue)
 {
     FILE *inputFile; 
     inputFile = fopen("processes.txt", "r"); // open the input file in a read mode
@@ -155,7 +154,6 @@ void readInputFile()
             printf("The priority is %d \n\n\n", myNewPCB->priority);*/
             
             // enqueue myNewPCB in arrivedProcessesQueue
-            Queue arrivedProcessesQueue;
             queueInit(&arrivedProcessesQueue, sizeof(PCB));
             enqueue(&arrivedProcessesQueue , myNewPCB);
         }
@@ -192,7 +190,6 @@ pid_t createScheduler(char * const * argv){
         }
         /*else if (forkResult == 1){
             printf("Scheduler Parent!! \n");
-
         }*/
     }
     //
@@ -232,10 +229,13 @@ pid_t createClock(){
 }
 
 
-void sendProcessAtAppropTime (Queue* arrivedProcessesQueue,PCB* arrivedProcess ){
+void sendProcessAtAppropTime (Queue* arrivedProcessesQueue){
 
 	while (getQueueSize(&arrivedProcessesQueue) != 0){
+        //printf("The sizeeeeeeeeeeeeeeee is %d\n", getQueueSize(&arrivedProcessesQueue));
 
+        PCB* arrivedProcess;
+        dequeue(&arrivedProcessesQueue,&arrivedProcess);
 		int currTime = getClk();
         //int currTime = 10;
         printf("current time is %d\n", currTime);
@@ -246,5 +246,3 @@ void sendProcessAtAppropTime (Queue* arrivedProcessesQueue,PCB* arrivedProcess )
 
 	}
 }
-
-    
