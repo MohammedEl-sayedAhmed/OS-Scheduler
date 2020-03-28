@@ -73,6 +73,8 @@ int main(int argc, char * argv[])
 
     // 6. Send the information to the scheduler at the appropriate time.
     sendProcessAtAppropTime (arrivedProcessesQueue,arrivedProcess);
+    // send to scheduler
+    //Send_msg(struct msgbuff message); // will be fixed 
 
     // 7. Clear clock resources
     destroyClk(true);
@@ -240,7 +242,6 @@ void sendProcessAtAppropTime (Queue* arrivedProcessesQueue,PCB* arrivedProcess )
 
 		int currProcessArrTime = arrivedProcess->arrivalTime;
 		int sleepTime = currProcessArrTime - currTime;
-
 		sleep(sleepTime);
 
 	}
