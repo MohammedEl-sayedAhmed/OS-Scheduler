@@ -64,7 +64,7 @@ int main(int argc, char * argv[])
     createClock();
 
     // 4. Use this function after creating the clock process to initialize clock
-    //initClk();
+    initClk();
 
 
     // TODO Generation Main Loop
