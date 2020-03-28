@@ -91,26 +91,26 @@ struct msgbuff
 //Sending messages function :
 void Send_msg(struct msgbuff message)
 {    
-//Creat resource -mailbox- (queue of messages)
-int msgqid = msgget(key,IPC_CREAT| 0644); // or msgget(12613, IPC_CREAT | 0644)
-//Making sure from validity of creation of resource
-if(msgqid == -1)
-perror("Invalid up_msgid");
-else
-printf("msgid=%d", msgqid);
-pid_t Pid=getpid();    
-message.mtype =Pid;  
-struct PCB * pointer_1;
-pointer_1=message.data;
+    //Creat resource -mailbox- (queue of messages)
+    int msgqid = msgget(key,IPC_CREAT| 0644); // or msgget(12613, IPC_CREAT | 0644)
+    //Making sure from validity of creation of resource
+    if(msgqid == -1)
+    perror("Invalid up_msgid");
+    else
+    printf("msgid=%d", msgqid);
+    pid_t Pid=getpid();    
+    message.mtype =Pid;  
+    struct PCB * pointer_1;
+    pointer_1=message.data;
     
-int  send_val ;
-//comment:Need to make sure from this -(!IPC_NOWAIT) or (IPC_NOWAIT)-
-send_val = msgsnd(msgqid , &message,sizeof(message.data), !IPC_NOWAIT);
+    int  send_val ;
+    //comment:Need to make sure from this -(!IPC_NOWAIT) or (IPC_NOWAIT)-
+    send_val = msgsnd(msgqid , &message,sizeof(message.data), !IPC_NOWAIT);
 
-    if(send_val == -1)
-        perror("Errror in send");
-    else 
-        printf("sent already");
+        if(send_val == -1)
+            perror("Errror in send");
+        else 
+            printf("sent already");
 }
 
 //TODO Clears all resources in case of interruption
