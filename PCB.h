@@ -1,17 +1,22 @@
 #pragma once 
-
-#include "ProcessFromInput.h"
 #include <stdlib.h>
 
 typedef struct 
 {
-    ProcessFromInput newArrivedProcess;
+    
+    // Process from text file
+    int id;
+    int arrivalTime;
+    int runTime;
+    int priority;
+
+    // PCB data
     pid_t pid;
     int startTime;
     int remainingTime;
     int waitingTime;
     int finishTime;
- //   enum {STARTED, RESUMED, STOPED, FINISHED};
+    enum {STARTED, RESUMED, STOPED, FINISHED} state;
 
 }   PCB;
 

@@ -1,10 +1,17 @@
 #include "headers.h"
 #include "PCB.h"
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <ctype.h>
+#include <signal.h>
 
 void resumeProcess(PCB* processPCB, FILE* outLogFile);
 void startProcess(PCB* processPCB, FILE* outLogFile);
-void stopProcess(PCB* processPCB, FILE* outLogFile);
-void handler(int signum);
 
 int main(int argc, char * argv[])
 {
@@ -33,10 +40,10 @@ void resumeProcess(PCB* processPCB, FILE* outLogFile) {
 
     // Calculate and update the process waiting time
     int currTime = getClk();
-    processPCB->waitingTime = (currTime - processPCB->newArrivedProcess.arrivalTime) - (processPCB->newArrivedProcess.runTime - processPCB->remainingTime);
+    processPCB->waitingTime = (currTime - processPCB->arrivalTime) - (processPCB->runTime - processPCB->remainingTime);
 
     // Print the "resuming" line in the output log file
-    fprintf(outLogFile, "At time %d process %d resumed arr %d total %d remain %d wait %d\n", currTime, processPCB->newArrivedProcess.id, processPCB->newArrivedProcess.arrivalTime, processPCB->newArrivedProcess.runTime, processPCB->remainingTime, processPCB->waitingTime);
+    fprintf(outLogFile, "At time %d process %d resumed arr %d total %d remain %d wait %d\n", currTime, processPCB->id, processPCB->arrivalTime, processPCB->runTime, processPCB->remainingTime, processPCB->waitingTime);
 
 }
 
@@ -51,7 +58,7 @@ void startProcess(PCB* processPCB, FILE* outLogFile) {
     else if (pid == 0)
     {
         char str[100];
-        sprintf(str, "%d", processPCB->newArrivedProcess.runTime);
+        sprintf(str, "%d", processPCB->runTime);
         char *argv[] = { "./process.out", str};
         execve(argv[0], &argv[0], NULL);
     }
@@ -61,38 +68,47 @@ void startProcess(PCB* processPCB, FILE* outLogFile) {
         // Update the process PCB fields as appropriate
         processPCB->pid = pid;
         processPCB->startTime = currTime;
-        processPCB->remainingTime = processPCB->newArrivedProcess.runTime;
-        processPCB->waitingTime = processPCB->newArrivedProcess.arrivalTime - currTime;
+        processPCB->remainingTime = processPCB->runTime;
+        processPCB->waitingTime = processPCB->arrivalTime - currTime;
         //printf("Process created successfully.\n");
 
         // Print the "starting" line in the output log file
-        fprintf(outLogFile, "At time %d process %d started arr %d total %d remain %d wait %d\n", currTime, processPCB->newArrivedProcess.id, processPCB->newArrivedProcess.arrivalTime, processPCB->newArrivedProcess.runTime, processPCB->remainingTime, processPCB->waitingTime);
+        fprintf(outLogFile, "At time %d process %d started arr %d total %d remain %d wait %d\n", currTime, processPCB->id, processPCB->arrivalTime, processPCB->runTime, processPCB->remainingTime, processPCB->waitingTime);
 
     }
 }
 
-void stopProcess(PCB* processPCB, FILE* outLogFile) {
 
-    //send a stop signal to the process
-    kill(processPCB->pid, SIGSTOP);
+struct msgbuff
+{
+   long mtype;
+//comment :immm ,I need to make sure from being (data) a pointer .
+    PCB* data;
+};
 
-    // Calculate and update the process remaining time
-    int currTime = getClk();
-    processPCB->remainingTime = (processPCB->newArrivedProcess.runTime) -  (currTime - processPCB->newArrivedProcess.arrivalTime - processPCB->waitingTime);
+void Recive_msg(struct msgbuff message)
+{   
+//comment:get msg_queue_id which has same key as msg_queue in processor generator
+   key_t key=13245;
+   key_t msgqid = msgget(key, 0644); 
 
-    // Print the "starting" line in the output log file
-    fprintf(outLogFile, "At time %d process %d stopped arr %d total %d remain %d wait %d\n", currTime, processPCB->newArrivedProcess.id, processPCB->newArrivedProcess.arrivalTime, processPCB->newArrivedProcess.runTime, processPCB->remainingTime, processPCB->waitingTime);
-}
+//comment:Making sure from validity of msg_id :
+    if(msgqid == -1)
+    perror("Invalid up_msgid");
+    else
+    printf("msgid=%d \n",msgqid);
+   
+    int rec_val;
+    pid_t  pid=getpid();
+/* receive all types of messages */
+//comment:immm ,I don't remember why we put pid of this process here ..in the following line !
+    rec_val = msgrcv(msgqid, &message, sizeof(message.data),pid, !IPC_NOWAIT);
 
-void hanlder(int signum) {
-    
-    int pid, stat_loc;
-    printf("\nfrom handler my Id: %d\n",getpid() ); 
-
-    printf("Child has sent a SIGCHLD signal #%d\n",signum);
-
-    pid = wait(&stat_loc);
-    if(WIFEXITED(stat_loc))
-        printf("\nA child with pid %d terminated with exit code %d\n", pid, WEXITSTATUS(stat_loc));
-    
+    if(rec_val == -1)
+        perror("Error in receive");
+    else
+//comment:print (For example)...mtype,startTime,priority of a message .
+        printf("\nMessage type received: %ld \n",message.mtype);
+        printf("\nMessage type received: %d \n",message.data->startTime);
+        printf("\nMessage type received: %d \n",message.data->priority);
 }
