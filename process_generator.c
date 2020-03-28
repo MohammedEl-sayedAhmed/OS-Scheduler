@@ -94,9 +94,9 @@ void Send_msg(struct PCB * pointer_1)
     int msgqid = msgget(key,IPC_CREAT| 0644); // or msgget(12613, IPC_CREAT | 0644)
     //Making sure from validity of creation of resource
     if(msgqid == -1)
-    perror("Invalid up_msgid");
+    	perror("Invalid up_msgid");
     else
-    printf("msgid=%d", msgqid);
+    	printf("msgid=%d", msgqid);
     pid_t Pid=getpid();    
     //comment:Not sure if this is right or wrong !    
     struct msgbuff message;   
