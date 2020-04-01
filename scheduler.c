@@ -18,10 +18,11 @@ enum algorithm chosenAlg;
 void resumeProcess(PCB* processPCB, FILE* outLogFile, bool silent);
 void startProcess(PCB* processPCB, FILE* outLogFile);
 void stopProcess(PCB* processPCB, FILE* outLogFile, bool silent);
+void finishProcess(PCB* processPCB, FILE* outLogFile);
 void handler(int signum);
 bool succesful_exit_handler = false;
 void SRTN(FILE* outLogFile);
-
+void HPF(FILE* outLogFile);
 
 int main(int argc, char * argv[])
 {
@@ -102,6 +103,13 @@ void stopProcess(PCB* processPCB, FILE* outLogFile, bool silent) {
     if(!silent) {
         fprintf(outLogFile, "At time %d process %d stopped arr %d total %d remain %d wait %d\n", currTime, processPCB->id, processPCB->arrivalTime, processPCB->runTime, processPCB->remainingTime, processPCB->waitingTime);
     }
+}
+
+void finishProcess(PCB* processPCB, FILE* outLogFile)
+{
+    int currTime = getClk();
+    fprintf(outLogFile, "At time %d process %d finished arr %d total %d remain %d wait %d\n", currTime, processPCB->id, processPCB->arrivalTime, processPCB->runTime, processPCB->remainingTime, processPCB->waitingTime);
+    processPCB = NULL;
 }
 
 void hanlder(int signum) {
@@ -195,4 +203,38 @@ void SRTN(FILE* outLogFile) {
         }
         */
     } 
+}
+
+void HPF(FILE* outLogFile){
+    PNode* ReadyQueue = NULL;
+    struct msgbuff* message;
+    PCB* temp_process_pcb = NULL;
+    PCB* ready_process_pcb = NULL;
+    
+    while (1)
+    {
+        while (receiveMsg(0,message))
+        {
+            temp_process_pcb = &(message->data);
+            push(&ReadyQueue, temp_process_pcb, temp_process_pcb->priority);
+        }
+        if (!isEmpty(&ReadyQueue))
+        {
+            pop(&ReadyQueue,ready_process_pcb);
+            startProcess(&ready_process_pcb, outLogFile);
+            sleep(ready_process_pcb->runTime);
+            
+            while (!succesful_exit_handler)
+            {
+                stopProcess(&ready_process_pcb, outLogFile,0);
+                resumeProcess(&ready_process_pcb, outLogFile,0);
+                sleep(ready_process_pcb->remainingTime);
+            }
+            finishProcess(&ready_process_pcb, outLogFile);
+        
+        }
+        
+        
+    }
+    
 }
