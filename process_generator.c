@@ -11,40 +11,36 @@
 #include "PCB.h"
 #include "Queue.h"
 
-//void clearResources(int signum);
-void readInputFile(Queue* arrivedProcessesQueue);
-
-pid_t createScheduler(char * const * argv);
+pid_t schedulerPID, clockPID;
 pid_t createClock();
-void sendProcessAtAppropTime (Queue* arrivedProcessesQueue);
+pid_t createScheduler(char * const * argv);
+void readInputFile(Queue* arrivedProcessesQueue);
+void sendProcessAtAppropTime(Queue* arrivedProcessesQueue);
+void clearResources(int signum);
 
-//////////////////////////////
-void end(int signum) {
-    printf("inside end\n");
-    destroyClk(true);
-    exit(0);
-}
 
 int main(int argc, char * argv[])
 {
-    signal(SIGINT, end);
-//    signal(SIGINT, clearResources); ///////mafrod n kill scheduler w kollo fiha sa7?
-    // TODO Initialization
+    // Specify handler to SIGINT so that resources are cleared upon interruption
+    signal(SIGINT, clearResources);
+
+
+    // Initialize a queue to store all processes
     Queue arrivedProcessesQueue;
     queueInit(&arrivedProcessesQueue, sizeof(PCB));
     
-    // 1. Read the input files.
+    // Read all incoming processes from the input file
     readInputFile(&arrivedProcessesQueue);
 
-    // 2. Ask the user for the chosen scheduling algorithm and its parameters, if there are any.
 
-    //SRTN: Shortest Remaining Time Next, HPF: Highest Priority First (non permitive), RR: Round Robin
+    // Ask the user for the chosen scheduling algorithm and its parameters, if there are any.
+    // SRTN: Shortest Remaining Time Next, HPF: Highest Priority First (non permitive), RR: Round Robin
     char  scheduling_algorithm[5];
     int Quantum = 0;
-    
     printf("SRTN, HPF, RR are the available scheduling algorithms; choose one of them: \n");
     scanf ("%s", scheduling_algorithm);
-    
+
+    // Verify user has chosen a valid scheduler algorithm    
     while(strcmp(scheduling_algorithm,"RR")!=0 && strcmp(scheduling_algorithm,"SRTN")!=0 && strcmp(scheduling_algorithm,"HPF")!=0)
     {
         printf ("Error: You must choose one of the provided algorithms only.\n");
@@ -52,61 +48,93 @@ int main(int argc, char * argv[])
         scanf ("%s", scheduling_algorithm);
     }
 
+    // Ask user to choose the desired quantum in case of RR
     if(strcmp(scheduling_algorithm, "RR") == 0)
     {
         printf ("Enter quantum:\n");
         scanf("%d", &Quantum);
     }
-
     char QuantumStr[100];
     sprintf(QuantumStr, "%d", Quantum);
 
 
-    // 3. Initiate and create the scheduler and clock processes.
-    // define parameter list
+    // Create the clock process and establish communication with it
+    clockPID = createClock();
+    initClk();
+    ///////printf("Initialized clock.\n");
 
+
+    // Initialize a message queue through which processes will be sent to the scheduler
     initMsgQueue();
 
-    pid_t clockPID = createClock();
-
+    // Create the scheduler process and send the chosen algorithm and its parameters to it
     char * param[] = {scheduling_algorithm, QuantumStr , NULL};
-    pid_t schedulerPID = createScheduler(param);
+    schedulerPID = createScheduler(param);
 
 
-    // 4. Use this function after creating the clock process to initialize clock
-    initClk();
-
-    //sleep(5);
-    printf("Initialized clock.\n");
-
-    // TODO Generation Main Loop
-    // 5. Create a data structure for processes and provide it with its parameters.
-
-    // 6. Send the information to the scheduler at the appropriate time.
+    // Send processes to the scheduler at their appropriate arrival time
     sendProcessAtAppropTime(&arrivedProcessesQueue);
-    // send to scheduler
-    //Send_msg(struct msgbuff message); // will be fixed 
 
 
-    // 7. Clear clock resources
-    destroyClk(true);
-    printf("Destroyed clock.\n");
-    kill(clockPID, SIGINT);
-    kill(schedulerPID, SIGINT);
-    return 0;
+    // Wait till scheduler terminates
+    int stat;
+    pid_t isSched = waitpid(schedulerPID, &stat, 0);
+
+    // Check for successful termination of scheduler 
+    if ((isSched == schedulerPID) && (WIFEXITED(stat))) {
+        printf("Scheduler exited successfully with exit code: %d.\n", WEXITSTATUS(stat)); 
+    }
+    else {
+        printf("Scheduler did not exit successfully.\n");
+    }
+
+
+    // Clear all resources and terminate the whole system 
+    raise(SIGINT);
 }
 
-/*
-//TODO Clears all resources in case of interruption
-//clearResources function :
-void clearResources(int signum)
-{
-    printf("Resources are cleared now..\n");
-    int x = msgget(key,0644);
-    msgctl(x, IPC_RMID, (struct msqid_ds *) 0);
-    exit(0);
+//////////////////////////////////////////////
+
+// Create clock
+pid_t createClock(){
+
+    // Fork clock
+    pid_t clockPID = fork();
+
+    if (clockPID == -1){
+        perror("Error in forking clock.\n");
+        exit(1);
+    }
+    else if (clockPID == 0){
+
+        printf("Creating clock.\n");
+
+        // Run clk.out
+        char *argv[] = {"./clk.out", 0};
+        execve(argv[0], &argv[0], NULL);
+    }
+    return clockPID;  
 }
-*/
+
+// Create scheduler
+pid_t createScheduler(char * const * argv){
+
+    // Forking scheduler
+    pid_t schedulerPID = fork();
+
+    if (schedulerPID == -1){
+        perror("Error in forking scheduler.\n");
+        exit(1);
+    }
+    else if (schedulerPID == 0){
+
+        // Run scheduler.out
+        printf("Creating scheduler.\n");
+        execv("./testSleep1.out", argv); // argv is the list of arguments to pass (scheduling algorithm + necessary parameters)
+    }
+    return schedulerPID;  
+}
+
 // Read the input file
 void readInputFile(Queue* arrivedProcessesQueue)
 {
@@ -163,42 +191,6 @@ void readInputFile(Queue* arrivedProcessesQueue)
     fclose(inputFile);
 }
 
-// Create scheduler
-pid_t createScheduler(char * const * argv){
-
-    pid_t schedulerPID = fork();
-
-    if (schedulerPID == -1){
-        perror("Error in forking scheduler.\n");
-        exit(1);
-    }
-    else if (schedulerPID == 0){
-
-        printf("Forking scheduler.\n");
-        execv("./testSleep1.out", argv); // argv is the list of arguments to pass (scheduling algorithm + necessary parameters)
-    }
-    return schedulerPID;  
-}
-
-// Create clock
-pid_t createClock(){
-
-    pid_t clockPID = fork();
-
-    if (clockPID == -1){
-        perror("Error in forking clock.\n");
-        exit(1);
-    }
-    else if (clockPID == 0){
-
-        printf("Forking clock.\n");
-
-        char *argv[] = {"./clk.out", 0};
-        execve(argv[0], &argv[0], NULL);
-    }
-    return clockPID;  
-}
-
 // Send processes to the scheduler at their arrival time
 void sendProcessAtAppropTime (Queue* arrivedProcessesQueue) {
 
@@ -228,13 +220,43 @@ void sendProcessAtAppropTime (Queue* arrivedProcessesQueue) {
             printf("Couldn't send message to scheduler.\n");
         }
 	}
-    /////////////////////////////////FLAGGGG LL SCHED 3SHAN YKHALLAS
+
+    // Create a flag PCB (pid = -10) to send to the scheduler as an inidcation that no other processes will be sent
+    PCB flagProcess;
+    flagProcess.pid = -10;
+
+    // Send the flag PCB to the scheduler
+    bool sentStatus = sendMsg(flagProcess);
+    if(!sentStatus) {
+        printf("Couldn't send message to scheduler.\n");
+    }
+}
+
+// Clears all resources and terminates the whole system either in case of successful termination or interruption
+void clearResources(int signum)
+{
+    printf("Resources are cleared now..\n");
+
+    // Interrupt scheduler in case it is still running
+    kill(schedulerPID, SIGINT);
+
+    // Interrupt clock
+    kill(clockPID, SIGINT);
+
+    // Delete message queue between process generator and scheduler
+    destroyMsgQueue();
+
+    // Release resources of communication with the clock module, all other releases, and terminates the whole system
+    destroyClk(true);
+    exit(0);
 }
 
 
 /*
 1. send DONEEEEEEEEEEEEEEEEEEEE
-2. flag ll sched
-3. wait 3la elsched
-4. clear
+2. flag ll sched DONEEEEEEEEEEEEEEEEEE
+3. wait 3la elsched DONEEEEEEEEEEEEEEEEE
+4. clear DONEEEEEEEEEEEEEEEE
+5. handle sigint DONEEEEEEEEEEE
+6. Edit name of .out in createScheduler ----->
 */

@@ -70,7 +70,7 @@ void destroyClk(bool terminateAll)
 ///////////MESSAGE QUEUE///////////
 
 // The key of the one-way message queue between the process generator and the scheduler
-key_t msgqid;
+int msgqid;
 
 struct msgbuff {
     long mtype;
@@ -88,7 +88,7 @@ void initMsgQueue() {
         perror("Error in creating/getting message queue.\n");
         exit(-1);
     }
-    ///////printf("Message queue with msgqid = %d\n", msgqid);
+    printf("Message queue with msgqid = %d\n", msgqid);
 }
 
 void destroyMsgQueue() {
