@@ -12,23 +12,28 @@
 #include <ctype.h>
 #include <signal.h>
 
-enum algorithm {HPF, SRTN, RR};
 
-enum algorithm chosenAlg;
+//enum algorithm chosenAlg;
 void resumeProcess(PCB* processPCB, FILE* outLogFile, bool silent);
 void startProcess(PCB* processPCB, FILE* outLogFile);
 void stopProcess(PCB* processPCB, FILE* outLogFile, bool silent);
 void finishProcess(PCB* processPCB, FILE* outLogFile);
 void handler(int signum);
-bool succesful_exit_handler = false;
-void SRTN(FILE* outLogFile);
+//void SRTN(FILE* outLogFile);
 void HPF(FILE* outLogFile);
+
+bool succesful_exit_handler = false;   //global variable to store the handler result of exit code
+//bool finish_scheduler = false;         //global variable to store if the scheduler should stop (No other processes)
 
 int main(int argc, char * argv[])
 {
+
     // Establish communication with the clock module
     initClk();
-    
+
+    // Calling the written handler when the child exits 
+    signal(SIGCHLD, handler);
+  
     // Open an output file for the scheduler log (in the write mode)
     FILE* outLogFile = (FILE *) malloc(sizeof(FILE));
     outLogFile = fopen("SchedulerLog.txt", "w");
@@ -36,12 +41,37 @@ int main(int argc, char * argv[])
         printf("Could not open output file for scheduler log.\n");
     }
 
+    // Reading the main arguments 
+    int quantum;
+    //char shedalg[5];
+    char *shedalg = NULL;
+    if (argc == 2) {
+        
+        // Get the quantum needed for round robin algorithm 
+        quantum = atoi(argv[1]);
+        printf("Quantum %d.\n", quantum);
+
+        // Get the chosen algorithm 
+        shedalg = argv[0];
+        printf("Alg: %s\n", shedalg); 
+    }
+    // Deciding which algorithm that the process generator sent 
+    //if (strcmp(shedalg,"HPF") != 0)
+    //{
+        //printf("finish schedulerrrrrrrrr %d   ", finish_scheduler);
+        HPF(outLogFile);  
+    
+    //}
 
 
     // Close the output log file
     fclose(outLogFile);
+    
     // Upon termination, release resources of communication with the clock module
-    destroyClk(true);
+    
+    //destroyClk(false);
+
+    return 0;
 }
 
 void resumeProcess(PCB* processPCB, FILE* outLogFile, bool silent) {
@@ -110,9 +140,10 @@ void finishProcess(PCB* processPCB, FILE* outLogFile)
     int currTime = getClk();
     fprintf(outLogFile, "At time %d process %d finished arr %d total %d remain %d wait %d\n", currTime, processPCB->id, processPCB->arrivalTime, processPCB->runTime, processPCB->remainingTime, processPCB->waitingTime);
     processPCB = NULL;
+    succesful_exit_handler = false;
 }
 
-void hanlder(int signum) {
+void handler(int signum) {
     
     int pid, stat_loc;
     printf("\nfrom handler my Id: %d\n",getpid() ); 
@@ -121,11 +152,17 @@ void hanlder(int signum) {
 
     pid = wait(&stat_loc);
     if(WIFEXITED(stat_loc))
+    {
         succesful_exit_handler = true;
-    
+    }
+    else
+    {
+        succesful_exit_handler = false;
+    }
+  
 }
 
-
+/*
 void SRTN(FILE* outLogFile) {
 
     PNode** PQueueHead = NULL;
@@ -139,10 +176,18 @@ void SRTN(FILE* outLogFile) {
         if (isEmpty(PQueueHead)) {
             receiveMsg(1, tempBuffer);
             tempPCB = tempBuffer->data;
+            if (tempPCB->pid == -10)
+            {
+                break;
+            }
             push(PQueueHead, tempPCB, tempPCB->remainingTime);
 
             while(receiveMsg(0, tempBuffer)) {
                 tempPCB = tempBuffer->data;
+            if (tempPCB->pid == -10)
+            {
+                break;
+            }
                 push(PQueueHead, tempPCB, tempPCB->remainingTime);
             }
         }
@@ -202,39 +247,63 @@ void SRTN(FILE* outLogFile) {
             push(PQueueHead, currProcessPCB, currProcessPCB->remainingTime);
         }
         */
-    } 
-}
+   /* } 
+}*/
+
 
 void HPF(FILE* outLogFile){
+    
     PNode* ReadyQueue = NULL;
-    struct msgbuff* message;
+    struct msgbuff message;
     PCB* temp_process_pcb = NULL;
     PCB* ready_process_pcb = NULL;
-    
+    //printf("finish scheduler %d   ", finish_scheduler);
     while (1)
     {
-        while (receiveMsg(0,message))
+        //printf("finish scheduler %d   ", finish_scheduler);
+        if (isEmpty(&ReadyQueue))
         {
-            temp_process_pcb = &(message->data);
+            //printf("finish scheduler %d   ", finish_scheduler);
+            /*if (finish_scheduler == true)
+            {
+                printf("HPPPPPPPPPFFFFFFF");
+                break;
+            }*/
+            receiveMsg(1,message);
+            temp_process_pcb = &(message.data);
+            /*if (temp_process_pcb->pid == -10)
+            {
+                printf("true1/n");
+                finish_scheduler = true;
+                break;
+            }*/
             push(&ReadyQueue, temp_process_pcb, temp_process_pcb->priority);
         }
+        
+        while (receiveMsg(0,message))
+        {
+            temp_process_pcb = &(message.data);
+            /*if (temp_process_pcb->pid == -10)
+            {
+                printf("true1/n");
+                finish_scheduler = true;
+            }*/
+            push(&ReadyQueue, temp_process_pcb, temp_process_pcb->priority);
+        }
+        
         if (!isEmpty(&ReadyQueue))
         {
             pop(&ReadyQueue,ready_process_pcb);
-            startProcess(&ready_process_pcb, outLogFile);
+            startProcess(ready_process_pcb, outLogFile);
             sleep(ready_process_pcb->runTime);
             
             while (!succesful_exit_handler)
             {
-                stopProcess(&ready_process_pcb, outLogFile,0);
-                resumeProcess(&ready_process_pcb, outLogFile,0);
+                stopProcess(ready_process_pcb, outLogFile,1);
+                resumeProcess(ready_process_pcb, outLogFile,1);
                 sleep(ready_process_pcb->remainingTime);
             }
-            finishProcess(&ready_process_pcb, outLogFile);
-        
-        }
-        
-        
-    }
-    
+            finishProcess(ready_process_pcb, outLogFile);
+        }  
+    }  
 }

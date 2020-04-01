@@ -71,15 +71,15 @@ int main(int argc, char * argv[])
     char * param[] = {scheduling_algorithm, QuantumStr , NULL};
     schedulerPID = createScheduler(param);
 
-
+    printf("before if condition   .\n");
     // Send processes to the scheduler at their appropriate arrival time
     sendProcessAtAppropTime(&arrivedProcessesQueue);
 
-
+    
     // Wait till scheduler terminates
     int stat;
     pid_t isSched = waitpid(schedulerPID, &stat, 0);
-
+    
     // Check for successful termination of scheduler 
     if ((isSched == schedulerPID) && (WIFEXITED(stat))) {
         printf("Scheduler exited successfully with exit code: %d.\n", WEXITSTATUS(stat)); 
@@ -130,7 +130,7 @@ pid_t createScheduler(char * const * argv){
 
         // Run scheduler.out
         printf("Creating scheduler.\n");
-        execv("./testSleep1.out", argv); // argv is the list of arguments to pass (scheduling algorithm + necessary parameters)
+        execv("./Scheduler.out", argv); // argv is the list of arguments to pass (scheduling algorithm + necessary parameters)
     }
     return schedulerPID;  
 }
@@ -194,7 +194,6 @@ void readInputFile(Queue* arrivedProcessesQueue)
 // Send processes to the scheduler at their arrival time
 void sendProcessAtAppropTime (Queue* arrivedProcessesQueue) {
 
-    ///////printf("Inside sendProcessAtAppropTime.\n");
 
     // While there are still processes
 	while (getQueueSize(arrivedProcessesQueue) != 0) {
@@ -208,18 +207,20 @@ void sendProcessAtAppropTime (Queue* arrivedProcessesQueue) {
 		int currTime = getClk();
 		int sleepTime = nextProcess.arrivalTime - currTime;
         
-        ///////printf("Will sleep for %d seconds.\n", sleepTime);
+        printf("Will sleep for %d seconds.", sleepTime);
 		sleep(sleepTime);
 
 		///////currTime = getClk();
-        ///////printf("Sending process at %d.\n", currTime);
+        printf("Sending process at %d.", currTime);
 
         // Send the process to the scheduler
         bool sentStatus = sendMsg(nextProcess);
         if(!sentStatus) {
             printf("Couldn't send message to scheduler.\n");
         }
+
 	}
+    
 
     // Create a flag PCB (pid = -10) to send to the scheduler as an inidcation that no other processes will be sent
     PCB flagProcess;

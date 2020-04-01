@@ -31,6 +31,11 @@ void peek(PNode** head)
 { 
     return (*head)->data; 
 } 
+// Function to check is list is empty 
+bool isEmpty(PNode** head) 
+{ 
+    return (*head) == NULL; 
+} 
 
 // Removes the element with the 
 // highest priority form the list 
@@ -80,11 +85,6 @@ void push(PNode** head, void *d, int p)
     } 
 } 
 
-// Function to check is list is empty 
-bool isEmpty(PNode** head) 
-{ 
-    return (*head) == NULL; 
-} 
 
 
 

@@ -128,17 +128,18 @@ bool sendMsg(PCB pointer_1)
     }
 }
 
-bool receiveMsg(int waitFlag, struct msgbuff* message)
+bool receiveMsg(int waitFlag, struct msgbuff message)
 {   
     // Create an object of the message buffer to receive the message in
     int rec_val;
 
     // Receive message irrespective of its type
     if (waitFlag) {
-        rec_val = msgrcv(msgqid, message, sizeof(message->data), 0, !IPC_NOWAIT);
+        rec_val = msgrcv(msgqid, &message, sizeof(message.data), 1, !IPC_NOWAIT);
+        printf("waited\n");
     }
     else {
-        rec_val = msgrcv(msgqid, message, sizeof(message->data), 0, IPC_NOWAIT);
+        rec_val = msgrcv(msgqid, &message, sizeof(message.data), 0, IPC_NOWAIT);
     }
 
     if(rec_val == -1) {
@@ -147,7 +148,7 @@ bool receiveMsg(int waitFlag, struct msgbuff* message)
     }
     else {
         ///////comment:print (For example)...mtype,startTime,priority of a message .
-        printf("\nMessage type received: %ld \n", message->mtype);
+        printf("\nMessage type received: %ld \n", message.mtype);
     }
 
     return true;
