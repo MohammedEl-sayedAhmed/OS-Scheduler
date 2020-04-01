@@ -6,19 +6,19 @@
 #include <stdio.h> 
 #include <stdlib.h> 
   
-// Node 
-typedef struct node { 
-    int data; 
+// PNode 
+typedef struct PNode { 
+    void *data; 
     // Lower values indicate higher priority 
     int priority; 
-    struct node* next; 
+    struct PNode* next; 
   
-} Node; 
+} PNode; 
 
 // Function to Create A New Node 
-Node* newNode(int d, int p) 
+PNode* newNode(void *d, int p) 
 { 
-    Node* temp = (Node*)malloc(sizeof(Node)); 
+    PNode* temp = (PNode*)malloc(sizeof(PNode)); 
     temp->data = d; 
     temp->priority = p; 
     temp->next = NULL; 
@@ -27,27 +27,33 @@ Node* newNode(int d, int p)
 } 
   
 // Return the value at head 
-int peek(Node** head) 
+void peek(PNode** head) 
 { 
     return (*head)->data; 
 } 
 
 // Removes the element with the 
 // highest priority form the list 
-void pop(Node** head) 
+bool pop(PNode** head, void *d) 
 { 
-    Node* temp = *head; 
+    if(isEmpty(head)) {
+        return false;
+    }
+
+    PNode* temp = *head; 
     (*head) = (*head)->next; 
+    d = temp->data;
     free(temp); 
+    return true;
 } 
 
 // Function to push according to priority 
-void push(Node** head, int d, int p) 
+void push(PNode** head, void *d, int p) 
 { 
-    Node* start = (*head); 
+    PNode* start = (*head); 
   
     // Create new Node 
-    Node* temp = newNode(d, p); 
+    PNode* temp = newNode(d, p); 
   
     // Special Case: The head of list has lesser 
     // priority than new node. So insert new 
@@ -75,7 +81,7 @@ void push(Node** head, int d, int p)
 } 
 
 // Function to check is list is empty 
-int isEmpty(Node** head) 
+bool isEmpty(PNode** head) 
 { 
     return (*head) == NULL; 
 } 

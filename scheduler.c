@@ -1,4 +1,6 @@
 #include "headers.h"
+#include "PriorityQueue.h"
+#include "Queue.h"
 #include "PCB.h"
 #include <sys/types.h>
 #include <sys/ipc.h>
@@ -10,8 +12,16 @@
 #include <ctype.h>
 #include <signal.h>
 
-void resumeProcess(PCB* processPCB, FILE* outLogFile);
+enum algorithm {HPF, SRTN, RR};
+
+enum algorithm chosenAlg;
+void resumeProcess(PCB* processPCB, FILE* outLogFile, bool silent);
 void startProcess(PCB* processPCB, FILE* outLogFile);
+void stopProcess(PCB* processPCB, FILE* outLogFile, bool silent);
+void handler(int signum);
+bool succesful_exit_handler = false;
+void SRTN(FILE* outLogFile);
+
 
 int main(int argc, char * argv[])
 {
@@ -33,7 +43,7 @@ int main(int argc, char * argv[])
     destroyClk(true);
 }
 
-void resumeProcess(PCB* processPCB, FILE* outLogFile) {
+void resumeProcess(PCB* processPCB, FILE* outLogFile, bool silent) {
 
     // Send a continue signal to the process
     kill(processPCB->pid, SIGCONT);
@@ -43,8 +53,9 @@ void resumeProcess(PCB* processPCB, FILE* outLogFile) {
     processPCB->waitingTime = (currTime - processPCB->arrivalTime) - (processPCB->runTime - processPCB->remainingTime);
 
     // Print the "resuming" line in the output log file
-    fprintf(outLogFile, "At time %d process %d resumed arr %d total %d remain %d wait %d\n", currTime, processPCB->id, processPCB->arrivalTime, processPCB->runTime, processPCB->remainingTime, processPCB->waitingTime);
-
+    if (!silent) {
+        fprintf(outLogFile, "At time %d process %d resumed arr %d total %d remain %d wait %d\n", currTime, processPCB->id, processPCB->arrivalTime, processPCB->runTime, processPCB->remainingTime, processPCB->waitingTime);
+    }
 }
 
 void startProcess(PCB* processPCB, FILE* outLogFile) {
@@ -78,37 +89,110 @@ void startProcess(PCB* processPCB, FILE* outLogFile) {
     }
 }
 
+void stopProcess(PCB* processPCB, FILE* outLogFile, bool silent) {
 
-struct msgbuff
-{
-   long mtype;
-//comment :immm ,I need to make sure from being (data) a pointer .
-    PCB* data;
-};
+    //send a stop signal to the process
+    kill(processPCB->pid, SIGSTOP);
 
-void Recive_msg(struct msgbuff message)
-{   
-//comment:get msg_queue_id which has same key as msg_queue in processor generator
-   key_t key=13245;
-   key_t msgqid = msgget(key, 0644); 
+    // Calculate and update the process remaining time
+    int currTime = getClk();
+    processPCB->remainingTime = (processPCB->runTime) -  (currTime - processPCB->arrivalTime - processPCB->waitingTime);
 
-//comment:Making sure from validity of msg_id :
-    if(msgqid == -1)
-    perror("Invalid up_msgid");
-    else
-    printf("msgid=%d \n",msgqid);
-   
-    int rec_val;
-    pid_t  pid=getpid();
-/* receive all types of messages */
-//comment:immm ,I don't remember why we put pid of this process here ..in the following line !
-    rec_val = msgrcv(msgqid, &message, sizeof(message.data),pid, !IPC_NOWAIT);
+    // Print the "starting" line in the output log file
+    if(!silent) {
+        fprintf(outLogFile, "At time %d process %d stopped arr %d total %d remain %d wait %d\n", currTime, processPCB->id, processPCB->arrivalTime, processPCB->runTime, processPCB->remainingTime, processPCB->waitingTime);
+    }
+}
 
-    if(rec_val == -1)
-        perror("Error in receive");
-    else
-//comment:print (For example)...mtype,startTime,priority of a message .
-        printf("\nMessage type received: %ld \n",message.mtype);
-        printf("\nMessage type received: %d \n",message.data->startTime);
-        printf("\nMessage type received: %d \n",message.data->priority);
+void hanlder(int signum) {
+    
+    int pid, stat_loc;
+    printf("\nfrom handler my Id: %d\n",getpid() ); 
+
+    printf("Child has sent a SIGCHLD signal #%d\n",signum);
+
+    pid = wait(&stat_loc);
+    if(WIFEXITED(stat_loc))
+        succesful_exit_handler = true;
+    
+}
+
+
+void SRTN(FILE* outLogFile) {
+
+    PNode** PQueueHead = NULL;
+    *PQueueHead = NULL;
+    struct msgbuff* tempBuffer;
+    PCB* tempPCB;
+    //bool silence = false; //////////
+
+    while (1) {  ////te2felllll + silent in file or not
+
+        if (isEmpty(PQueueHead)) {
+            receiveMsg(1, tempBuffer);
+            tempPCB = tempBuffer->data;
+            push(PQueueHead, tempPCB, tempPCB->remainingTime);
+
+            while(receiveMsg(0, tempBuffer)) {
+                tempPCB = tempBuffer->data;
+                push(PQueueHead, tempPCB, tempPCB->remainingTime);
+            }
+        }
+
+        PCB* currProcessPCB = (PCB *) malloc(sizeof(PCB));      
+        pop(PQueueHead, currProcessPCB);
+        
+        if (currProcessPCB->pid == -5) {
+            startProcess(currProcessPCB, outLogFile);
+        }
+        else {
+            resumeProcess(currProcessPCB, outLogFile, 0);
+        }
+        
+        receiveMsg(1, tempBuffer);
+
+        if (succesful_exit_handler) {
+            finishProcess(currProcessPCB, outLogFile); /////////////////////// set successful exit handler
+        }
+        else {
+            stopProcess(currProcessPCB, outLogFile, 0);
+            tempPCB = tempBuffer->data;
+            push(PQueueHead, tempPCB, tempPCB->remainingTime);
+            push(PQueueHead, currProcessPCB, currProcessPCB->remainingTime);
+        }
+
+        while(receiveMsg(0, tempBuffer)) {
+            tempPCB = tempBuffer->data;
+            push(PQueueHead, tempPCB, tempPCB->remainingTime);
+        }
+
+        /*
+        while (receiveMsg(0, tempBuffer)) { ////while hena en fi msgs gat, w msh elseeeeeeeeee
+            tempPCB = tempBuffer->data;
+
+            int currTime = getClk();
+            int currProcessRemTime = (currProcessPCB->runTime) -  (currTime - currProcessPCB->arrivalTime - currProcessPCB->waitingTime);
+
+            if ((tempPCB->remainingTime < currProcessRemTime) && !preemptionFlag) {
+                preemptionFlag = true;
+                stopProcess(currProcessPCB, outLogFile, 0);         
+            }
+            
+            push(PQueueHead, tempPCB, tempPCB->remainingTime);
+        }
+        
+
+        //sleep(currProcessPCB->remainingTime); ///////////////////////
+
+        //silence = false;
+        
+
+        silence = false;        
+        
+        if (!preemptionFlag) {
+            stopProcess(currProcessPCB, outLogFile, 1);  
+            push(PQueueHead, currProcessPCB, currProcessPCB->remainingTime);
+        }
+        */
+    } 
 }

@@ -68,13 +68,15 @@ void dequeue(Queue *q, void *data)
     }
 }
 
-void queuePeek(Queue *q, void *data)
+int queuePeek(Queue *q, void *data)
 {
     if(q->sizeOfQueue > 0)
     {
        node *temp = q->head;
        memcpy(data, temp->data, q->memSize);
+       return 1;
     }
+    return 0;
 }
 
 void clearQueue(Queue *q)

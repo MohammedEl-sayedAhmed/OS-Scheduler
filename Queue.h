@@ -18,7 +18,7 @@ typedef struct QueueList
 void queueInit(Queue *q, size_t memSize);
 int enqueue(Queue *, const void *);
 void dequeue(Queue *, void *);
-void queuePeek(Queue *, void *);
+int queuePeek(Queue *, void *);
 void clearQueue(Queue *);
 int getQueueSize(Queue *);
 
