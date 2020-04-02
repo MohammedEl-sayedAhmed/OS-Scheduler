@@ -164,6 +164,9 @@ void handler(int signum) {
     int pid, stat_loc;
     printf("\nfrom handler my Id: %d\n",getpid() ); 
 
+    succesful_exit_handler = 1;
+    /*
+
     pid = wait(&stat_loc);
     if(WIFEXITED(stat_loc))
     {
@@ -175,6 +178,7 @@ void handler(int signum) {
         succesful_exit_handler = 0;
         printf("Child with pid %d has sent a SIGCHLD signal #%d\n", pid, signum);
     }
+    */
 }
 
 
@@ -384,6 +388,7 @@ int SSSS(FILE* outLogFile) {
         else if (status == 1) {
             if (tempBuffer.data.pid != -10) {
                 stopProcess(currProcessPCB, outLogFile, 0);
+                succesful_exit_handler = 0;
                 equate(&tempBuffer.data, &tempPCB);    
                 push(&PQueueHead, &tempPCB, tempPCB.remainingTime);
                 push(&PQueueHead, currProcessPCB, currProcessPCB->remainingTime);
@@ -391,6 +396,7 @@ int SSSS(FILE* outLogFile) {
             }
             else {
                 stopProcess(currProcessPCB, outLogFile, 0);
+                succesful_exit_handler = 0;
                 resumeProcess(currProcessPCB, outLogFile, 0);
                 printf("Will sleep to finish process pid %d\n", currProcessPCB->pid);
                 //sleep(currProcessPCB->remainingTime);

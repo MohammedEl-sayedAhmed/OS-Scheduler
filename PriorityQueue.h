@@ -51,7 +51,7 @@ int pop(PNode** head, void *d)
     equate(temp->data, d);
     free(temp); 
     return 1;
-} 
+}
 
 // Function to push according to priority 
 void push(PNode** head, void *d, int p) 
