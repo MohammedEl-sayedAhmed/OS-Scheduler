@@ -44,6 +44,6 @@ int main(int argc, char * argv[])
     
     // Release resources of communication with the clock module
 //    destroyClk(false);
-    
+    kill(getppid(), SIGUSR1);
     return 0;
 }

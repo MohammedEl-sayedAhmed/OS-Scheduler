@@ -1,7 +1,7 @@
 #include "headers.h"
 int SRTN(FILE* outLogFile) {
 
-//    printf("Inside SRTN\n");
+    printf("Inside SRTN\n");
     PNode* PQueueHead = NULL;
     struct msgbuff tempBuffer;
     PCB tempPCB;
@@ -10,18 +10,18 @@ int SRTN(FILE* outLogFile) {
 
     while (exitnow!=1) {  ////te2felllll + silent in file or not
 
-//        printf("Inisde while 1");
+        printf("Inisde while 1");
         //if ((isEmpty(&PQueueHead)) || (!isEmpty(&PQueueHead))) {
         if (isEmpty(&PQueueHead)) {
 
             if(finish_scheduler) {
-//                printf("will break right -10 is empty%d\n", isEmpty(&PQueueHead));
+                printf("will break right -10 is empty%d\n", isEmpty(&PQueueHead));
                 exitnow = 1;
                 continue;
             }
 
             tempBuffer = receiveMsg(1, &status);
-//            printf("Status after rec %d\n", status);
+            printf("Status after rec %d\n", status);
             //if(status) {
             //    printf("pcb pid bef %d", tempBuffer.data.arrivalTime);
             //}
@@ -29,7 +29,7 @@ int SRTN(FILE* outLogFile) {
             if(status) {
                 equate(&tempBuffer.data, &tempPCB);    
                 //tempPCB = tempBuffer.data;
-//                printf("pcb pid %d", tempPCB.pid);
+                printf("pcb pid %d", tempPCB.pid);
                 if (tempPCB.pid == -10)
                 {
                     printf("will break -10\n");
@@ -138,6 +138,7 @@ int SRTN(FILE* outLogFile) {
     printf("Outside while\n"); 
     return 1;
 }
+
 
 int main() {
 
