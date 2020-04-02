@@ -27,29 +27,30 @@ PNode* newNode(void *d, int p)
 } 
   
 // Return the value at head 
-void peek(PNode** head) 
+void* peek(PNode** head) 
 { 
     return (*head)->data; 
 } 
 // Function to check is list is empty 
-bool isEmpty(PNode** head) 
+int isEmpty(PNode** head) 
 { 
     return (*head) == NULL; 
 } 
 
 // Removes the element with the 
 // highest priority form the list 
-bool pop(PNode** head, void *d) 
+int pop(PNode** head, void *d) 
 { 
     if(isEmpty(head)) {
-        return false;
+        return 0;
     }
 
     PNode* temp = *head; 
     (*head) = (*head)->next; 
-    d = temp->data;
+//    d = temp->data;
+    equate(temp->data, d);
     free(temp); 
-    return true;
+    return 1;
 } 
 
 // Function to push according to priority 
@@ -63,25 +64,30 @@ void push(PNode** head, void *d, int p)
     // Special Case: The head of list has lesser 
     // priority than new node. So insert new 
     // node before head node and change head node. 
-    if ((*head)->priority > p) { 
-  
-        // Insert New Node before head 
-        temp->next = *head; 
-        (*head) = temp; 
-    } 
-    else { 
-  
-        // Traverse the list and find a 
-        // position to insert new node 
-        while (start->next != NULL && 
-               start->next->priority < p) { 
-            start = start->next; 
+    if(isEmpty(head)) {
+        (*head) = temp;
+    }
+    else {
+        if ((*head)->priority > p) { 
+    
+            // Insert New Node before head 
+            temp->next = *head; 
+            (*head) = temp; 
         } 
-  
-        // Either at the ends of the list 
-        // or at required position 
-        temp->next = start->next; 
-        start->next = temp; 
+        else { 
+    
+            // Traverse the list and find a 
+            // position to insert new node 
+            while (start->next != NULL && 
+                start->next->priority < p) { 
+                start = start->next; 
+            } 
+    
+            // Either at the ends of the list 
+            // or at required position 
+            temp->next = start->next; 
+            start->next = temp; 
+        }
     } 
 } 
 

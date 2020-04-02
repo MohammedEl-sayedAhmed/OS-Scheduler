@@ -74,7 +74,6 @@ int msgqid;
 
 struct msgbuff {
     long mtype;
-///////comment :immm ,I need to make sure from being (data) a pointer .
     PCB data;
 };
 
@@ -116,7 +115,7 @@ bool sendMsg(PCB pointer_1)
     
     int send_val;
     //comment:Need to make sure from this -(!IPC_NOWAIT) or (IPC_NOWAIT)-
-    send_val = msgsnd(msgqid , &message, sizeof(message.data), !IPC_NOWAIT);
+    send_val = msgsnd(msgqid , &message, sizeof(message), !IPC_NOWAIT);
 
     if(send_val == -1) {
         perror("Errror in send.\n");
@@ -128,28 +127,35 @@ bool sendMsg(PCB pointer_1)
     }
 }
 
-bool receiveMsg(int waitFlag, struct msgbuff message)
-{   
-    // Create an object of the message buffer to receive the message in
+struct msgbuff receiveMsg(int waitFlag, int *status)
+{
+    // Create an object of the message buffer to receive the message in   
+    struct msgbuff message;
+    //PCB prec;
+
     int rec_val;
 
-    // Receive message irrespective of its type
+    // According to the wait flag, receive message irrespective of its type
     if (waitFlag) {
-        rec_val = msgrcv(msgqid, &message, sizeof(message.data), 1, !IPC_NOWAIT);
-        printf("waited\n");
+        rec_val = msgrcv(msgqid, &message, sizeof(message), 0, !IPC_NOWAIT);
+//        printf("waited   ");
     }
     else {
-        rec_val = msgrcv(msgqid, &message, sizeof(message.data), 0, IPC_NOWAIT);
+        rec_val = msgrcv(msgqid, &message, sizeof(message), 0, IPC_NOWAIT);
     }
 
     if(rec_val == -1) {
         perror("Error in receiving message.\n");
-        return false;
+        *status = 0;
     }
     else {
-        ///////comment:print (For example)...mtype,startTime,priority of a message .
-        printf("\nMessage type received: %ld \n", message.mtype);
+        printf("Message type received: %ld \n", message.mtype);
+        *status = 1;
+        //prec = message.data;
+        //printf("id from rec %d", prec.pid);
     }
-
-    return true;
+    
+    //printf("returning from rec\n");
+    //return 1;
+    return message;
 }

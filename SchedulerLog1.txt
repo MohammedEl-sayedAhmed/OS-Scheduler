@@ -1,0 +1,7 @@
+At time 4 process 0 resumed arr 0 total 0 remain 0 wait 4
+At time 7 process 0 finished arr 0 total 0 remain 0 wait 4
+At time 14 process 0 resumed arr 0 total 0 remain 0 wait 14
+At time 15 process 0 finished arr 0 total 0 remain 0 wait 14
+At time 22 process 0 resumed arr 0 total 0 remain 0 wait 22
+At time 22 process 0 finished arr 0 total 0 remain 0 wait 22
+

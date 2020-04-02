@@ -6,14 +6,16 @@ int runningtime, remainingtime;
 
 int main(int argc, char * argv[])
 {
+    //printf("Inside process.\n");
+ 
     // Establish communication with the clock module
     initClk();
 
     // Check if only one other argument (running time) is passed to the process other than its name
-    if (argc == 2) {
+    if (argc == 1) {
 
         // Set the process running time to equal that passed to it
-        runningtime = atoi(argv[1]);
+        runningtime = atoi(argv[0]);
         ///////printf("Process intended running time is: %d.\n", runningtime);
 
         // Initialize the remaining time with the running time
@@ -21,7 +23,7 @@ int main(int argc, char * argv[])
     }
     else {
         // If a wrong number of arguments is passed, print out this message to the user and return with 1
-        printf("Expected number of passed arguments is 2.\n");
+        printf("Expected number of passed arguments is 1.\n");
         exit(1);
     }
 
@@ -37,10 +39,11 @@ int main(int argc, char * argv[])
         ///////printf("Remaining time: %d second(s).\n", remainingtime);
     }
 
-    ///////printf("Process finished.\n");
+    //printf("Process finished.\n");
 
     
     // Release resources of communication with the clock module
-    destroyClk(false);
-    exit(0);
+//    destroyClk(false);
+    
+    return 0;
 }

@@ -32,3 +32,18 @@ void PCBinit(PCB *newlyReadPCB) {
     newlyReadPCB->state = MAGATSH;
 
 }
+
+void equate(PCB *from, PCB *to) {
+    to->id = from->id;
+    to->arrivalTime = from->arrivalTime;
+    to->runTime = from->runTime;
+    to->priority = from->priority;
+
+    // PCB data
+    to->pid = from->pid;
+    to->remainingTime = from->remainingTime;
+    to->startTime = from->startTime;
+    to->waitingTime = from->waitingTime;
+    to->finishTime = from->finishTime;
+    to->state = from->state;
+}

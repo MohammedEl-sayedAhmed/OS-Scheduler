@@ -1,0 +1,6 @@
+At time 4 process 1 started arr 4 total 2 remain 2 wait 0
+At time 7 process 1 finished arr 4 total 2 remain 0 wait 0
+At time 9 process 2 started arr 9 total 4 remain 4 wait 0
+At time 9 process 2 stopped arr 9 total 4 remain 4 wait 0
+At time 9 process 2 resumed arr 9 total 4 remain 4 wait 0
+At time 14 process 2 finished arr 9 total 4 remain 0 wait 0

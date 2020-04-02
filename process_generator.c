@@ -79,15 +79,22 @@ int main(int argc, char * argv[])
     // Wait till scheduler terminates
     int stat;
     pid_t isSched = waitpid(schedulerPID, &stat, 0);
-    
+    //pid_t isSched = wait(&stat);
+ 
     // Check for successful termination of scheduler 
-    if ((isSched == schedulerPID) && (WIFEXITED(stat))) {
-        printf("Scheduler exited successfully with exit code: %d.\n", WEXITSTATUS(stat)); 
-    }
-    else {
-        printf("Scheduler did not exit successfully.\n");
-    }
+    while ((isSched != schedulerPID) || !(WIFEXITED(stat))) {
+        printf("Signal received from scheduler %d.\n", WEXITSTATUS(stat));
 
+        if (WIFSIGNALED(stat)) 
+        psignal(WTERMSIG(stat), "Exit signal");         
+
+    }
+//        printf("Scheduler exited successfully with exit code: %d.\n", WEXITSTATUS(stat)); 
+//    }
+//    else {
+//        printf("Scheduler did not exit successfully.\n");
+//    }
+    printf("Scheduler exited successfully with exit code: %d.\n", WEXITSTATUS(stat)); 
 
     // Clear all resources and terminate the whole system 
     raise(SIGINT);
@@ -207,11 +214,11 @@ void sendProcessAtAppropTime (Queue* arrivedProcessesQueue) {
 		int currTime = getClk();
 		int sleepTime = nextProcess.arrivalTime - currTime;
         
-        printf("Will sleep for %d seconds.", sleepTime);
+        ///////printf("Will sleep for %d seconds.", sleepTime);
 		sleep(sleepTime);
 
 		///////currTime = getClk();
-        printf("Sending process at %d.", currTime);
+        ///////printf("Sending process at %d.", currTime);
 
         // Send the process to the scheduler
         bool sentStatus = sendMsg(nextProcess);
