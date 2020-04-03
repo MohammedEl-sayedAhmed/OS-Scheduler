@@ -75,8 +75,8 @@ void outfile_calculation(PCB* processPCB,int total_time) {
     //incrementing the counter 
     counter++;
     fprintf("counter = %d \n",counter);
-
     //Closing the file
+
     fclose(fp); //Don't forget to close the file when finished 
     fp=NULL;
     

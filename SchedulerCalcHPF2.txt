@@ -1,0 +1,3 @@
+Avg WTA = 8.45
+Avg Waiting = 31.00 
+Std WTA = 12.36

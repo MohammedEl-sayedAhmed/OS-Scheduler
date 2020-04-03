@@ -1,0 +1,16 @@
+At time 4 process 1 started arr 4 total 3 remain 3 wait 0
+At time 8 process 1 finished arr 4 total 3 remain 0 wait 0
+At time 8 process 2 started arr 6 total 10 remain 10 wait 2
+At time 12 process 2 stopped arr 6 total 10 remain 6 wait 2
+At time 12 process 2 resumed arr 6 total 10 remain 6 wait 2
+At time 16 process 2 stopped arr 6 total 10 remain 2 wait 2
+At time 16 process 2 resumed arr 6 total 10 remain 2 wait 2
+At time 18 process 2 finished arr 6 total 10 remain 0 wait 2
+At time 20 process 3 started arr 20 total 12 remain 12 wait 0
+At time 24 process 3 stopped arr 20 total 12 remain 8 wait 0
+At time 24 process 3 resumed arr 20 total 12 remain 8 wait 0
+At time 28 process 3 stopped arr 20 total 12 remain 4 wait 0
+At time 28 process 3 resumed arr 20 total 12 remain 4 wait 0
+At time 32 process 3 stopped arr 20 total 12 remain 0 wait 0
+At time 32 process 3 resumed arr 20 total 12 remain 0 wait 0
+At time 33 process 3 finished arr 20 total 12 remain 0 wait 0

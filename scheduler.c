@@ -36,12 +36,12 @@ Queue WTAQueue;
 void Standard_deviation(FILE* outCalcFile);
 
 
-/*
+
 clock_t befClocks;
 int clksBefAlg;
 clock_t aftClocks;
 int clksAftAlg;
-*/
+
 
 int main(int argc, char * argv[])
 {
@@ -86,8 +86,9 @@ int main(int argc, char * argv[])
     // Initialize queue of weighted turnaround times
     queueInit(&WTAQueue, sizeof(double));
 
-    //befClocks = clock();
-    //clksBefAlg = (int) (befClocks/CLOCKS_PER_SEC);
+    befClocks = clock();
+    clksBefAlg = (int) (befClocks/CLOCKS_PER_SEC);
+    printf("Beforee clocks %ld, seconds %d\n", befClocks, clksBefAlg);
 
     // Run the chosen algorithm
     if(strcmp(schedalg,"HPF") == 0)
@@ -107,16 +108,23 @@ int main(int argc, char * argv[])
         SRTN(outLogFile);
     }
 
-//    printf("Will Close.\n");
-//    aftClocks = clock();
-//    printf("aftttttt %ld, clkk %ld\n", clock(), CLOCKS_PER_SEC);
-//    clksAftAlg = (int) (clock()/CLOCKS_PER_SEC);
 
-//    int totalClkSec = clksAftAlg;
+
+//    printf("Will Close.\n");
+    aftClocks = clock();
+    clksAftAlg = (int) (clock()/CLOCKS_PER_SEC);
+    printf("aftttttt %ld, clkk %d\n", aftClocks, clksAftAlg);
+
+
+    clock_t totalClks = aftClocks - befClocks;
+
+    double totalSched = ((double) totalClks) + (((double) total_proceesing_time) * ((double) CLOCKS_PER_SEC));
+    totalSched = (double) (totalSched/CLOCKS_PER_SEC);
     
 //    printf("%d   %d\n", total_proceesing_time, totalClkSec);
-//    int cpu_utilization= (int) ((total_proceesing_time/totalClkSec)*100);
-//    fprintf(outCalcFile, "CPU  utilization: %d %% \n", cpu_utilization);
+    double cpu_utilization= (double) ((total_proceesing_time/totalSched)*100);
+    fprintf(outCalcFile, "CPU  utilization: %.0f %% \n", cpu_utilization);
+    
 
     double AWTA = (double) (total_WTA/processCount);
     fprintf(outCalcFile,"Avg WTA = %.2f\n", AWTA);
@@ -694,7 +702,7 @@ void HPF(FILE* outLogFile) {
             printf("After sleep\n");
         }
         finishProcess(currProcessPCB, outLogFile);
-        /*
+        
         status = 0;
         tempBuffer = receiveMsg(0, &status);
         while(status == 1) {
@@ -715,7 +723,6 @@ void HPF(FILE* outLogFile) {
                 tempBuffer = receiveMsg(0, &status);
             }
         }
-        */
     }
     return;
 }
