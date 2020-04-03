@@ -71,7 +71,6 @@ int main(int argc, char * argv[])
     char * param[] = {scheduling_algorithm, QuantumStr , NULL};
     schedulerPID = createScheduler(param);
 
-    printf("before if condition   .\n");
     // Send processes to the scheduler at their appropriate arrival time
     sendProcessAtAppropTime(&arrivedProcessesQueue);
 

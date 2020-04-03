@@ -16,7 +16,7 @@ typedef struct
     int remainingTime;
     int waitingTime;
     int finishTime;
-    enum {MAGATSH, RUNNING, WAITING, FINISHED} state;
+    enum {NOTSTARTED, RUNNING, WAITING, FINISHED} state;
 
 }   PCB;
 
@@ -29,7 +29,7 @@ void PCBinit(PCB *newlyReadPCB) {
     newlyReadPCB->remainingTime = newlyReadPCB->runTime;
     newlyReadPCB->waitingTime = 0;
     newlyReadPCB->finishTime = -1;
-    newlyReadPCB->state = MAGATSH;
+    newlyReadPCB->state = NOTSTARTED;
 
 }
 

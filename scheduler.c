@@ -13,31 +13,29 @@
 #include <signal.h>
 
 
-void resumeProcess(PCB* processPCB, FILE* outLogFile, bool silent);
+void userHandler(int signum);
 void startProcess(PCB* processPCB, FILE* outLogFile);
+void resumeProcess(PCB* processPCB, FILE* outLogFile, bool silent);
 void stopProcess(PCB* processPCB, FILE* outLogFile, bool silent);
 void finishProcess(PCB* processPCB, FILE* outLogFile);
-void userHandler(int signum);
-int SRTN(FILE* outLogFile);
-int HPF(FILE* outLogFile);
-struct msgbuff message_hpf;
+void SRTN(FILE* outLogFile);
+void HPF(FILE* outLogFile);
 void RR(FILE* outLogFile, int Quantum);
-void RRRR(FILE* outLogFile, int Quantum);
-int HHH(FILE* outLogFile);
+int succesful_exit_handler = 0;   // global variable to store that the child exited successfully
+int finish_scheduler = 0;         // global variable to store if the scheduler should stop (No other processes)
 
-int succesful_exit_handler = 0;   //global variable to store the handler result of exit code
-int finish_scheduler = 0;         //global variable to store if the scheduler should stop (No other processes)
-int exitnow;
+int total_waiting_time = 0;
+int total_proceesing_time = 0;
+int total_WTA = 0;
+int processCount = 0;
 
 int main(int argc, char * argv[])
 {
 
-    exitnow = 0;
     // Establish communication with the clock module
     initClk();
 
-    // Calling the written handler when the child exits 
-    //signal(SIGCHLD, handler);
+    // Handler for SIGUSR1 signal sent by children to the scheduler upon successful termination
     signal(SIGUSR1, userHandler);
     
   
@@ -48,45 +46,50 @@ int main(int argc, char * argv[])
         printf("Could not open output file for scheduler log.\n");
     }
 
-    // Reading the main arguments 
+    // Open an output file for the scheduler calculations (in the write mode)
+    FILE* outCalcFile = (FILE *) malloc(sizeof(FILE));
+    outCalcFile = fopen("SchedulerCalc.txt", "w");
+    if (outCalcFile == NULL) {
+        printf("Could not open output file for scheduler calculations.\n");
+    }
+
+    // Read the passed arguments 
     int quantum;
-    //char shedalg[5];
-    char *shedalg = NULL;
+    char *schedalg = NULL;
+
     if (argc == 2) {
-        
+        // Get the chosen algorithm 
+        schedalg = argv[0];
+        ///////printf("Algorithm chosen: %s.\n", schedalg); 
+
         // Get the quantum needed for round robin algorithm 
         quantum = atoi(argv[1]);
-        printf("Quantum %d.\n", quantum);
-
-        // Get the chosen algorithm 
-        shedalg = argv[0];
-        printf("Alg: %s\n", shedalg); 
+        ///////printf("Quantum chosen: %d.\n", quantum);
     }
-    // Deciding which algorithm that the process generator sent 
-    //if (strcmp(shedalg,"HPF") != 0)
-    //{
-        //printf("finish schedulerrrrrrrrr %d   ", finish_scheduler);
-        //HPF(outLogFile);  
-    
-    //}
-    printf("finish sched %d", finish_scheduler);
+
+    // Initialize message queue 
     initMsgQueue();
-    //SRTN(outLogFile);
-//    SRTN(outLogFile);
 
-//    HPF(outLogFile);
-//      HHH(outLogFile);
+    // Run the chosen algorithm
+    if(strcmp(schedalg,"HPF") == 0)
+    {
+        printf("Chosen algorithm is HPF.\n");
+        HPF(outLogFile);  
+    }
+    else if (strcmp(schedalg,"RR") == 0) {
+        printf("Chosen algorithm is RR with a quantum of %d seconds.\n", quantum);
+        RR(outLogFile, quantum);
+    }
+    else if (strcmp(schedalg,"SRTN") == 0) {
+        printf("Chosen algorithm is SRTN.\n");
+        SRTN(outLogFile);
+    }
 
-    RRRR(outLogFile, 5);
-
-    //sleep(1000);
-
-
-    // Close the output log file
+    // Close the output log and calculations file
     fclose(outLogFile);
+    fclose(outCalcFile);
     
     // Upon termination, release resources of communication with the clock module
-    
     //destroyClk(false);
 
     return 0;
@@ -96,13 +99,14 @@ void resumeProcess(PCB* processPCB, FILE* outLogFile, bool silent) {
 
     // Send a continue signal to the process
     kill(processPCB->pid, SIGCONT);
-    printf("Inside resume id %d pid %d\n", processPCB->id, processPCB-> pid);
+    printf("Inside resume id %d pid %d\n", processPCB->id, processPCB->pid);
 
-    // Calculate and update the process waiting time
+    // Calculate and update the process waiting time and state
     int currTime = getClk();
     processPCB->waitingTime = (currTime - processPCB->arrivalTime) - (processPCB->runTime - processPCB->remainingTime);
+    processPCB->state = RUNNING;
 
-    // Print the "resuming" line in the output log file
+    // Print the "resumed" line in the output log file
     if (!silent) {
         fprintf(outLogFile, "At time %d process %d resumed arr %d total %d remain %d wait %d\n", currTime, processPCB->id, processPCB->arrivalTime, processPCB->runTime, processPCB->remainingTime, processPCB->waitingTime);
     }
@@ -121,10 +125,8 @@ void startProcess(PCB* processPCB, FILE* outLogFile) {
         printf("Will execv\n");
         char str[100];
         sprintf(str, "%d", processPCB->runTime);
-        //char *argv[] = { "./process.out", str};
-        //execve(argv[0], &argv[0], NULL);
         char * param[] = {str, NULL};
-        execv("./process.out", param); // argv is the list of arguments to pass (scheduling algorithm + necessary parameters)
+        execv("./process.out", param); // param contains the running time of the process
 
     }
     else {
@@ -135,25 +137,26 @@ void startProcess(PCB* processPCB, FILE* outLogFile) {
         processPCB->startTime = currTime;
         processPCB->remainingTime = processPCB->runTime;
         processPCB->waitingTime = currTime - processPCB->arrivalTime;
+        processPCB->state = RUNNING;
         //printf("Process created successfully.\n");
 
-        // Print the "starting" line in the output log file
+        // Print the "started" line in the output log file
         fprintf(outLogFile, "At time %d process %d started arr %d total %d remain %d wait %d\n", currTime, processPCB->id, processPCB->arrivalTime, processPCB->runTime, processPCB->remainingTime, processPCB->waitingTime);
-        printf("Inside start id %d pid %d", processPCB->id, processPCB->pid);
-
     }
 }
 
 void stopProcess(PCB* processPCB, FILE* outLogFile, bool silent) {
-    //send a stop signal to the process
+
+    // Send a stop signal to the process
     kill(processPCB->pid, SIGSTOP);
 
     printf("Inside stop id %d pid %d\n", processPCB->id, processPCB-> pid);
-    // Calculate and update the process remaining time
+    // Calculate and update the process remaining time and state
     int currTime = getClk();
     processPCB->remainingTime = (processPCB->runTime) -  (currTime - processPCB->arrivalTime - processPCB->waitingTime);
+    processPCB->state = WAITING;
 
-    // Print the "starting" line in the output log file
+    // Print the "stopped" line in the output log file
     if(!silent) {
         fprintf(outLogFile, "At time %d process %d stopped arr %d total %d remain %d wait %d\n", currTime, processPCB->id, processPCB->arrivalTime, processPCB->runTime, processPCB->remainingTime, processPCB->waitingTime);
     }
@@ -162,52 +165,33 @@ void stopProcess(PCB* processPCB, FILE* outLogFile, bool silent) {
 void finishProcess(PCB* processPCB, FILE* outLogFile)
 {
     int currTime = getClk();
+
+    // Calculate and update the process remaining time, finish time and state
     processPCB->remainingTime = 0;
     processPCB->finishTime = processPCB->arrivalTime + processPCB->waitingTime + processPCB->runTime;
+    processPCB->state = FINISHED;
     fprintf(outLogFile, "At time %d process %d finished arr %d total %d remain %d wait %d\n", currTime, processPCB->id, processPCB->arrivalTime, processPCB->runTime, processPCB->remainingTime, processPCB->waitingTime);
+    free(processPCB);
     processPCB = NULL;
     succesful_exit_handler = 0;
 }
 
-/*
-void handler(int signum) {
-    
-    int pid, stat_loc;
-    printf("\nfrom handler my Id: %d\n",getpid() ); 
-
-    succesful_exit_handler = 1;
-    
-
-    pid = wait(&stat_loc);
-    if(WIFEXITED(stat_loc))
-    {
-        printf("Child with pid %d has sent a SIGCHLD signal #%d\n", pid, signum);
-        succesful_exit_handler = 1;
-    }
-    else
-    {
-        succesful_exit_handler = 0;
-        printf("Child with pid %d has sent a SIGCHLD signal #%d\n", pid, signum);
-    }
-    
-}
-*/
-
 void userHandler(int signum) {
-    printf("User Signal\n");
+    printf("Process successfully terminated.\n");
     succesful_exit_handler = 1;
 }
 
-int SRTN(FILE* outLogFile) {
+// Shortest Remaining Time Next Algorithm
+void SRTN(FILE* outLogFile) {
 
-    printf("Inside SSSS\n");
+    printf("Running SRTN\n.");
     PNode* PQueueHead = NULL;
     struct msgbuff tempBuffer;
     PCB* tempPCB = NULL;
     int status;
 
     while(1) {
-        printf("Inside While\n");
+        //printf("Inside While\n");
         if (isEmpty(&PQueueHead)) {
 
             if(finish_scheduler) {
@@ -354,10 +338,10 @@ int SRTN(FILE* outLogFile) {
         }
     }
     printf("Outside While\n");
-    return 0;
+    return;
 }
 
-void RRRR(FILE* outLogFile, int Quantum) {
+void RR(FILE* outLogFile, int Quantum) {
 
     printf("Inside RRRR\n");
     Queue readyQueue;
@@ -525,7 +509,7 @@ void RRRR(FILE* outLogFile, int Quantum) {
     return;
 }
 
-int HHH(FILE* outLogFile) {
+void HPF(FILE* outLogFile) {
     printf("Inside HHH\n");
     PNode* ReadyQueue = NULL;
     struct msgbuff tempBuffer;
@@ -653,176 +637,5 @@ int HHH(FILE* outLogFile) {
         }
         */
     }
-}
-
-/*
-int HPF(FILE* outLogFile){
-    PNode* ReadyQueue = NULL;
-    PCB* temp_process_pcb = NULL;
-    PCB* ready_process_pcb = NULL;
-
-    while (1)
-    {
-        if (isEmpty(&ReadyQueue))
-        {
-            if (finish_scheduler == 1)
-            {
-                printf("finished scheduler \n");
-                break;
-            }
-            int rec_val = msgrcv(msgqid, &message_hpf, sizeof(message_hpf), 0, !IPC_NOWAIT);
-            printf("msg rec %d   \n", rec_val);
-            temp_process_pcb = &(message_hpf.data);
-            if (temp_process_pcb->pid == -10)
-            {
-                printf("true1 /n");
-                finish_scheduler = 1;
-                break;
-            }
-            push(&ReadyQueue, temp_process_pcb, temp_process_pcb->priority);
-        }
-
-        while (1)
-        {
-            int rec_val = msgrcv(msgqid, &message_hpf, sizeof(message_hpf), 0, IPC_NOWAIT);
-            printf("2- msg rec %d   \n", rec_val);
-            if (rec_val == -1)
-            {
-                break;
-            }
-            temp_process_pcb = &(message_hpf.data);
-            if (temp_process_pcb->pid == -10)
-            {
-                printf("true1/n");
-                finish_scheduler = 1;
-            }
-            push(&ReadyQueue, temp_process_pcb, temp_process_pcb->priority);
-        }
-        PCB* ready_process_pcb = (PCB *) malloc(sizeof(PCB));      
-
-        if (!isEmpty(&ReadyQueue))
-        {
-            printf("excuteee /n");
-            int afterPop = pop(&ReadyQueue, ready_process_pcb);
-            printf("afterPop is %d \n", afterPop);
-            //pop(&ReadyQueue,ready_process_pcb);
-            startProcess(ready_process_pcb, outLogFile);
-            sleep(ready_process_pcb->runTime);
-            
-            while (!succesful_exit_handler)
-            {
-                stopProcess(ready_process_pcb, outLogFile,1);
-                resumeProcess(ready_process_pcb, outLogFile,1);
-                sleep(ready_process_pcb->remainingTime);
-            }
-            finishProcess(ready_process_pcb, outLogFile);
-        } 
-
-    }
-    
-    
-
-
-    return 0;
-    
-}
-*/
-
-void RR(FILE* outLogFile, int Quantum) {
-
-
-    Queue RRreadyQueue;
-    queueInit(&RRreadyQueue, sizeof(PCB));
-    int size = getQueueSize(&RRreadyQueue);
-    struct msgbuff message;
-    PCB* temp_process_pcb = NULL;
-    PCB* ready_process_pcb = NULL;
-    int status;
-
-    
-    //printf("finish scheduler %d   ", finish_scheduler);
-    while (1)
-    {
-        //printf("finish scheduler %d   ", finish_scheduler);
-        if (getQueueSize(&RRreadyQueue) == 0)
-        {
-            //printf("finish scheduler %d   ", finish_scheduler);
-            /*if (finish_scheduler == true)
-            {
-                printf("HPPPPPPPPPFFFFFFF");
-                break;
-            }*/
-
-            message = receiveMsg(1, &status);
-            temp_process_pcb = &(message.data);
-            /*if (temp_process_pcb->pid == -10)
-            {
-                printf("true1/n");
-                finish_scheduler = true;
-                break;
-            }*/
-            enqueue(&RRreadyQueue, temp_process_pcb);
-
-        }
-
-        status = 0;
-        message = receiveMsg(0, &status);
-        while (status)
-        {
-            temp_process_pcb = &(message.data);
-            /*if (temp_process_pcb->pid == -10)
-            {
-                printf("true1/n");
-                finish_scheduler = true;
-            }*/
-            enqueue(&RRreadyQueue, temp_process_pcb);
-            status = 0;
-            message = receiveMsg(0, &status);
-        }
-
-        if (getQueueSize(&RRreadyQueue) != 0)
-        {
-            dequeue(&RRreadyQueue, ready_process_pcb);
-            if (ready_process_pcb->pid == -5) {
-                startProcess(ready_process_pcb, outLogFile);
-            }
-            else {
-                resumeProcess(ready_process_pcb, outLogFile,0);
-
-            }
-             /////// hna 3ayz a3ml resume aw start 3la 7asb hya awl mra wla la2 
-
-            if (ready_process_pcb->runTime < Quantum) {
-
-                sleep(ready_process_pcb->runTime);
-
-                // check for handler 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////
-                while (!succesful_exit_handler)
-                {
-                    stopProcess(ready_process_pcb, outLogFile, 1);
-                    resumeProcess(ready_process_pcb, outLogFile, 1);
-                    sleep(ready_process_pcb->remainingTime);
-                }
-///////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-                finishProcess(ready_process_pcb, outLogFile);
-            }
-            else {
-                sleep(Quantum);
-
-                // check for handler 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////
-                while (!succesful_exit_handler)
-                {
-                    stopProcess(ready_process_pcb, outLogFile, 1);
-                    resumeProcess(ready_process_pcb, outLogFile, 1);
-                    sleep(ready_process_pcb->remainingTime);
-                }
-///////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-                enqueue(&RRreadyQueue, ready_process_pcb);
-            }  
-        }
-    }
+    return;
 }
