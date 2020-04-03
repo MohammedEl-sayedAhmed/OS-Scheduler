@@ -82,19 +82,14 @@ int main(int argc, char * argv[])
     //pid_t isSched = wait(&stat);
  
     // Check for successful termination of scheduler 
-    while ((isSched != schedulerPID) || !(WIFEXITED(stat))) {
+    if ((isSched != schedulerPID) || !(WIFEXITED(stat))) {
         printf("Signal received from scheduler %d.\n", WEXITSTATUS(stat));
 
-        if (WIFSIGNALED(stat)) 
-        psignal(WTERMSIG(stat), "Exit signal");         
-
+        if (WIFSIGNALED(stat)) {
+            psignal(WTERMSIG(stat), "Exit signal");         
+        }
     }
-//        printf("Scheduler exited successfully with exit code: %d.\n", WEXITSTATUS(stat)); 
-//    }
-//    else {
-//        printf("Scheduler did not exit successfully.\n");
-//    }
-    printf("Scheduler exited successfully with exit code: %d.\n", WEXITSTATUS(stat)); 
+    printf("Scheduler exited with exit code: %d.\n", WEXITSTATUS(stat)); 
 
     // Clear all resources and terminate the whole system 
     raise(SIGINT);
@@ -175,13 +170,6 @@ void readInputFile(Queue* arrivedProcessesQueue)
             // Read the process data and save it properly to the PCB struct object
             fscanf(inputFile , "%d %d %d", &myNewPCB->arrivalTime, &myNewPCB->runTime , &myNewPCB->priority);
 
-            /*
-            printf("The ID is %d\n", myNewPCB->id);
-            printf("The arrival time is %d\n", myNewPCB->arrivalTime);
-            printf("The run time is %d \n", myNewPCB->runTime);
-            printf("The priority is %d \n\n\n", myNewPCB->priority);
-            */        
-
             // Initializing the rest of the members
             PCBinit(myNewPCB);
 
@@ -225,7 +213,6 @@ void sendProcessAtAppropTime (Queue* arrivedProcessesQueue) {
         if(!sentStatus) {
             printf("Couldn't send message to scheduler.\n");
         }
-
 	}
     
 
@@ -258,13 +245,3 @@ void clearResources(int signum)
     destroyClk(true);
     exit(0);
 }
-
-
-/*
-1. send DONEEEEEEEEEEEEEEEEEEEE
-2. flag ll sched DONEEEEEEEEEEEEEEEEEE
-3. wait 3la elsched DONEEEEEEEEEEEEEEEEE
-4. clear DONEEEEEEEEEEEEEEEE
-5. handle sigint DONEEEEEEEEEEE
-6. Edit name of .out in createScheduler ----->
-*/

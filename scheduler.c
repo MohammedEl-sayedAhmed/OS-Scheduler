@@ -13,12 +13,10 @@
 #include <signal.h>
 
 
-//enum algorithm chosenAlg;
 void resumeProcess(PCB* processPCB, FILE* outLogFile, bool silent);
 void startProcess(PCB* processPCB, FILE* outLogFile);
 void stopProcess(PCB* processPCB, FILE* outLogFile, bool silent);
 void finishProcess(PCB* processPCB, FILE* outLogFile);
-void handler(int signum);
 void userHandler(int signum);
 int SRTN(FILE* outLogFile);
 int HPF(FILE* outLogFile);
@@ -77,9 +75,9 @@ int main(int argc, char * argv[])
 //    SRTN(outLogFile);
 
 //    HPF(outLogFile);
-      HHH(outLogFile);
+//      HHH(outLogFile);
 
-//    RRRR(outLogFile, 8);
+    RRRR(outLogFile, 5);
 
     //sleep(1000);
 
@@ -205,7 +203,7 @@ int SRTN(FILE* outLogFile) {
     printf("Inside SSSS\n");
     PNode* PQueueHead = NULL;
     struct msgbuff tempBuffer;
-    PCB tempPCB;
+    PCB* tempPCB = NULL;
     int status;
 
     while(1) {
@@ -235,9 +233,10 @@ int SRTN(FILE* outLogFile) {
                     break;
                 }
                 else {
-                    equate(&tempBuffer.data, &tempPCB); 
-                    push(&PQueueHead, &tempPCB, tempPCB.remainingTime);
-                    printf("pushed id %d pid %d is empty %d\n", tempPCB.id, tempPCB.pid,isEmpty(&PQueueHead));
+                    tempPCB = (PCB *) malloc(sizeof(PCB));  
+                    equate(&tempBuffer.data, tempPCB); 
+                    push(&PQueueHead, tempPCB, tempPCB->remainingTime);
+                    printf("pushed id %d pid %d is empty %d\n", tempPCB->id, tempPCB->pid,isEmpty(&PQueueHead));
                 }
             }
             else {
@@ -277,8 +276,9 @@ int SRTN(FILE* outLogFile) {
                 //break;
             }
             else {
-                equate(&tempBuffer.data, &tempPCB); 
-                push(&PQueueHead, &tempPCB, tempPCB.remainingTime);
+                tempPCB = (PCB *) malloc(sizeof(PCB));  
+                equate(&tempBuffer.data, tempPCB); 
+                push(&PQueueHead, tempPCB, tempPCB->remainingTime);
                 status = 0;
                 tempBuffer = receiveMsg(0, &status);
             }
@@ -324,10 +324,11 @@ int SRTN(FILE* outLogFile) {
             if (tempBuffer.data.pid != -10) {
                 stopProcess(currProcessPCB, outLogFile, 0);
                 succesful_exit_handler = 0;
-                equate(&tempBuffer.data, &tempPCB);    
+                tempPCB = (PCB *) malloc(sizeof(PCB));  
+                equate(&tempBuffer.data, tempPCB);    
                 push(&PQueueHead, currProcessPCB, currProcessPCB->remainingTime);
-                push(&PQueueHead, &tempPCB, tempPCB.remainingTime);
-                printf("Pushed id %d pid %d is empty %d\n", tempPCB.id, tempPCB.pid, isEmpty(&PQueueHead));
+                push(&PQueueHead, tempPCB, tempPCB->remainingTime);
+                printf("Pushed id %d pid %d is empty %d\n", tempPCB->id, tempPCB->pid, isEmpty(&PQueueHead));
             }
             else {
                 stopProcess(currProcessPCB, outLogFile, 0);
@@ -362,7 +363,7 @@ void RRRR(FILE* outLogFile, int Quantum) {
     Queue readyQueue;
     queueInit(&readyQueue, sizeof(PCB));
     struct msgbuff tempBuffer;
-    PCB tempPCB;
+    PCB* tempPCB = NULL;
     int status;
     finish_scheduler = 0;
 
@@ -392,9 +393,10 @@ void RRRR(FILE* outLogFile, int Quantum) {
                     break;
                 }
                 else {
-                    equate(&tempBuffer.data, &tempPCB);
-                    enqueue(&readyQueue, &tempPCB);
-                    printf("Enqueued id %d pid %d is empty %d\n", tempPCB.id, tempPCB.pid, getQueueSize(&readyQueue));
+                    tempPCB = (PCB *) malloc(sizeof(PCB));  
+                    equate(&tempBuffer.data, tempPCB);
+                    enqueue(&readyQueue, tempPCB);
+                    printf("Enqueued id %d pid %d is empty %d\n", tempPCB->id, tempPCB->pid, getQueueSize(&readyQueue));
                 }
             }
             else {
@@ -414,9 +416,10 @@ void RRRR(FILE* outLogFile, int Quantum) {
                 //break;
             }
             else {
-                equate(&tempBuffer.data, &tempPCB); 
-                enqueue(&readyQueue, &tempPCB);
-                printf("Enqueued process id %d", tempPCB.id);
+                tempPCB = (PCB *) malloc(sizeof(PCB));  
+                equate(&tempBuffer.data, tempPCB); 
+                enqueue(&readyQueue, tempPCB);
+                printf("Enqueued process id %d", tempPCB->id);
                 status = 0;
                 tempBuffer = receiveMsg(0, &status);
             }
@@ -466,7 +469,7 @@ void RRRR(FILE* outLogFile, int Quantum) {
             }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
             finishProcess(currProcessPCB, outLogFile);
-
+/*
             status = 0;
             tempBuffer = receiveMsg(0, &status);
             while(status == 1) {
@@ -479,13 +482,14 @@ void RRRR(FILE* outLogFile, int Quantum) {
                     //break;
                 }
                 else {
-                    equate(&tempBuffer.data, &tempPCB); 
-                    enqueue(&readyQueue, &tempPCB);
-                    printf("Enqueued process id %d", tempPCB.id);
+                    tempPCB = (PCB *) malloc(sizeof(PCB));  
+                    equate(&tempBuffer.data, tempPCB); 
+                    enqueue(&readyQueue, tempPCB);
+                    printf("Enqueued process id %d", tempPCB->id);
                     status = 0;
                     tempBuffer = receiveMsg(0, &status);
                 }
-            }
+            }*/
         }
         else {
             printf("Not sure sleep\n");
@@ -506,9 +510,10 @@ void RRRR(FILE* outLogFile, int Quantum) {
                     //break;
                 }
                 else {
-                    equate(&tempBuffer.data, &tempPCB); 
-                    enqueue(&readyQueue, &tempPCB);
-                    printf("Enqueued process id %d", tempPCB.id);
+                    tempPCB = (PCB *) malloc(sizeof(PCB));  
+                    equate(&tempBuffer.data, tempPCB); 
+                    enqueue(&readyQueue, tempPCB);
+                    printf("Enqueued process id %d", tempPCB->id);
                     status = 0;
                     tempBuffer = receiveMsg(0, &status);
                 }
@@ -625,7 +630,7 @@ int HHH(FILE* outLogFile) {
             printf("After sleep\n");
         }
         finishProcess(currProcessPCB, outLogFile);
-
+        /*
         status = 0;
         tempBuffer = receiveMsg(0, &status);
         while(status == 1) {
@@ -646,9 +651,11 @@ int HHH(FILE* outLogFile) {
                 tempBuffer = receiveMsg(0, &status);
             }
         }
+        */
     }
 }
 
+/*
 int HPF(FILE* outLogFile){
     PNode* ReadyQueue = NULL;
     PCB* temp_process_pcb = NULL;
@@ -719,10 +726,7 @@ int HPF(FILE* outLogFile){
     return 0;
     
 }
-
-
-
-
+*/
 
 void RR(FILE* outLogFile, int Quantum) {
 
