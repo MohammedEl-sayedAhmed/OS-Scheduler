@@ -139,6 +139,7 @@ void resumeProcess(PCB* processPCB, FILE* outLogFile, bool silent) {
 
     // Send a continue signal to the process
     kill(processPCB->pid, SIGCONT);
+    printf("Inside resume id %d pid %d\n", processPCB->id, processPCB->pid);
 
     // Calculate and update the process waiting time and state
     int currTime = getClk();
@@ -162,6 +163,7 @@ void startProcess(PCB* processPCB, FILE* outLogFile) {
 
     else if (pid == 0)
     {
+        printf("Will execv\n");
         char str[100];
         sprintf(str, "%d", processPCB->runTime);
         char * param[] = {str, NULL};
@@ -190,6 +192,7 @@ void stopProcess(PCB* processPCB, FILE* outLogFile, bool silent) {
     kill(processPCB->pid, SIGSTOP);
 
     // Calculate and update the process remaining time and state
+    printf("Inside stop id %d pid %d\n", processPCB->id, processPCB-> pid);
     int currTime = getClk();
     processPCB->remainingTime = (processPCB->runTime) -  (currTime - processPCB->arrivalTime - processPCB->waitingTime);
     processPCB->state = WAITING;
@@ -305,7 +308,7 @@ void SRTN(FILE* outLogFile) {
                     // If process is not flag
                     tempPCB = (PCB *) malloc(sizeof(PCB));  
                     equate(&tempBuffer.data, tempPCB); 
-                    // Push process to the queue
+                    // Push process to the priority queue
                     push(&PQueueHead, tempPCB, tempPCB->remainingTime);
                     printf("Pushed process with id %d and pid %d\n", tempPCB->id, tempPCB->pid);
                 }
@@ -331,7 +334,7 @@ void SRTN(FILE* outLogFile) {
                 // Not flag process
                 tempPCB = (PCB *) malloc(sizeof(PCB));  
                 equate(&tempBuffer.data, tempPCB); 
-                // Push process to the queue
+                // Push process to the priority queue
                 push(&PQueueHead, tempPCB, tempPCB->remainingTime);
                 printf("Pushed process with id %d and pid %d\n", tempPCB->id, tempPCB->pid);
                 status = 0;
@@ -451,61 +454,52 @@ void RR(FILE* outLogFile, int Quantum) {
         if (getQueueSize(&readyQueue) == 0) {
 
 
-            // If the termination flag is 1; i.e. no more processes are coming
             if(finish_scheduler) {
-                printf("Empty queue (%d) and finish flag is true\n", getQueueSize(&readyQueue));
+                printf("Empty %d and finish is true\n", getQueueSize(&readyQueue));
                 break;
             }
 
-            // Wait till you receive a message
             status = 0;
             while(!status) {
-                printf("Will wait for message\n");
+                printf("Will wait for msg up\n");
                 tempBuffer = receiveMsg(1, &status);
             }
 
             if(status) {
-                // Received message   
-                printf("Received process with id %d and pid %d\n", tempBuffer.data.id, tempBuffer.data.pid);
-                
-                // Check if incoming process is a flag
+                //equate(&tempBuffer.data, &tempPCB);    
+                printf("Received id %d pid %d\n", tempBuffer.data.id, tempBuffer.data.pid);
                 if (tempBuffer.data.pid == -10) {
-                    printf("Empty queue (%d) and received flag\n", getQueueSize(&readyQueue));
+                    printf("Empty %d and received -10\n", getQueueSize(&readyQueue));
                     break;
                 }
                 else {
-                    // If process is not flag
                     tempPCB = (PCB *) malloc(sizeof(PCB));  
                     equate(&tempBuffer.data, tempPCB);
-                    // Push process to the queue
                     enqueue(&readyQueue, tempPCB);
-                    printf("Enqueued process with id %d and pid %d\n", tempPCB->id, tempPCB->pid);
+                    printf("Enqueued id %d pid %d is empty %d\n", tempPCB->id, tempPCB->pid, getQueueSize(&readyQueue));
                 }
             }
             else {
-                printf("Empty queue and could not receive messsage\n");
+                printf("Empty and error in receive\n");
             }
         }
 
         status = 0;
         tempBuffer = receiveMsg(0, &status);
         while(status == 1) {
-
-            printf("Received process with pid %d\n", tempBuffer.data.pid);   
-
-            // Check for flag process
+            printf("PCB pid %d\n", tempBuffer.data.pid);   
+        //    tempPCB = tempBuffer.data;
             if (tempBuffer.data.pid == -10)
             {
                 finish_scheduler = 1;
                 status = 0;
+                //break;
             }
             else {
-                // Not flag process
                 tempPCB = (PCB *) malloc(sizeof(PCB));  
                 equate(&tempBuffer.data, tempPCB); 
-                // Push process to the queue
                 enqueue(&readyQueue, tempPCB);
-                printf("Enqueued process with id %d\n", tempPCB->id);
+                printf("Enqueued process id %d", tempPCB->id);
                 status = 0;
                 tempBuffer = receiveMsg(0, &status);
             }
@@ -514,37 +508,30 @@ void RR(FILE* outLogFile, int Quantum) {
         PCB* currProcessPCB = (PCB *) malloc(sizeof(PCB));      
         int afterDeq = dequeue(&readyQueue, currProcessPCB);
         
-        printf("Successful dequeuing (%d) Dequeued process with id %d and pid %d\n", afterDeq, currProcessPCB->id, currProcessPCB->pid);
-   
-        // Chech whether process was forked before
+        printf("Success dequeue %d Dequeued id %d pid %d\n", afterDeq, currProcessPCB->id, currProcessPCB->pid);
         if (currProcessPCB->pid == -5) {
-            // Start process
             startProcess(currProcessPCB, outLogFile);
-            printf("Started process with id and %d pid %d\n", currProcessPCB->id, currProcessPCB->pid);
+            printf("Started id %d pid %d\n", currProcessPCB->id, currProcessPCB->pid);
         }
         else {
-            // Resume process
             resumeProcess(currProcessPCB, outLogFile, 0);
         }
-
-
-        // Check if remaining time of process fits wihtin a quantum
+//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
         if (currProcessPCB->remainingTime <= Quantum) {
-            
-            // Wait for current process to terminate
+
             int stat;
             pid_t isCurrProccess = waitpid(currProcessPCB->pid, &stat, 0);
             if ((isCurrProccess != currProcessPCB->pid) || !(WIFEXITED(stat))) {
-                printf("Exit code received from process: %d.\n", WEXITSTATUS(stat));
+                printf("Signal received from process %d.\n", WEXITSTATUS(stat));
                 if (WIFSIGNALED(stat)) {
-                    psignal(WTERMSIG(stat), "Exit signal:");  
+                    psignal(WTERMSIG(stat), "Exit signal");  
                 }       
             }
-            ///////printf("Exit status from process %d.\n", WIFEXITED(stat));
-            ///////printf("After sleep\n");
+            printf("Signal received from process, exit code %d.\n", WIFEXITED(stat));
+            printf("After sleep\n");
 
-
-            // Extra check that process exited successfully
+            // check for handler 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
             while (!succesful_exit_handler)
             {
                 stopProcess(currProcessPCB, outLogFile, 1);
@@ -552,43 +539,61 @@ void RR(FILE* outLogFile, int Quantum) {
                 int stat;
                 pid_t isCurrProccess = waitpid(currProcessPCB->pid, &stat, 0);
                 if ((isCurrProccess != currProcessPCB->pid) || !(WIFEXITED(stat))) {
-                    printf("Exit code received from process: %d.\n", WEXITSTATUS(stat));
+                    printf("Signal received from process %d.\n", WEXITSTATUS(stat));
                     if (WIFSIGNALED(stat)) {
-                        psignal(WTERMSIG(stat), "Exit signal:");  
+                        psignal(WTERMSIG(stat), "Exit signal");  
                     }       
                 }
-                ///////printf("Exit status from process %d.\n", WIFEXITED(stat));
-                ///////printf("After sleep\n");
+                printf("Signal received from process, exit code %d.\n", WIFEXITED(stat));
+                printf("After sleep\n");
             }
-
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
             finishProcess(currProcessPCB, outLogFile);
-        }
-        else {
-
-            // If process remaining time does not fit in a quantum
-            sleep(Quantum);
-
-            // After quantum
-            printf("Stopping process with id %d\n", currProcessPCB->id);
-            stopProcess(currProcessPCB, outLogFile, 0);
-
-            // Receive any process in the message queue
+/*
             status = 0;
             tempBuffer = receiveMsg(0, &status);
             while(status == 1) {
-                printf("Received process with pid %d\n", tempBuffer.data.pid);   
-
-                // Check for flag process
+                printf("PCB pid %d\n", tempBuffer.data.pid);   
+            //    tempPCB = tempBuffer.data;
                 if (tempBuffer.data.pid == -10)
                 {
                     finish_scheduler = 1;
                     status = 0;
+                    //break;
                 }
                 else {
                     tempPCB = (PCB *) malloc(sizeof(PCB));  
                     equate(&tempBuffer.data, tempPCB); 
                     enqueue(&readyQueue, tempPCB);
-                    printf("Enqueued process with id %d", tempPCB->id);
+                    printf("Enqueued process id %d", tempPCB->id);
+                    status = 0;
+                    tempBuffer = receiveMsg(0, &status);
+                }
+            }*/
+        }
+        else {
+            printf("Not sure sleep\n");
+            sleep(Quantum);
+
+            printf("Stopping process id %d\n", currProcessPCB->id);
+            stopProcess(currProcessPCB, outLogFile, 0);
+
+            status = 0;
+            tempBuffer = receiveMsg(0, &status);
+            while(status == 1) {
+                printf("PCB pid %d\n", tempBuffer.data.pid);   
+            //    tempPCB = tempBuffer.data;
+                if (tempBuffer.data.pid == -10)
+                {
+                    finish_scheduler = 1;
+                    status = 0;
+                    //break;
+                }
+                else {
+                    tempPCB = (PCB *) malloc(sizeof(PCB));  
+                    equate(&tempBuffer.data, tempPCB); 
+                    enqueue(&readyQueue, tempPCB);
+                    printf("Enqueued process id %d", tempPCB->id);
                     status = 0;
                     tempBuffer = receiveMsg(0, &status);
                 }
@@ -596,14 +601,13 @@ void RR(FILE* outLogFile, int Quantum) {
             enqueue(&readyQueue, currProcessPCB);
         }  
     }
+    printf("Outside While\n");
+
     return;
 }
 
 void HPF(FILE* outLogFile) {
-
-    printf("Running HPF\n");
-
-    // Initializing ready queue
+    printf("Inside HHH\n");
     PNode* ReadyQueue = NULL;
     struct msgbuff tempBuffer;
     PCB* temp_process_pcb = (PCB *) malloc(sizeof(PCB));
@@ -611,66 +615,59 @@ void HPF(FILE* outLogFile) {
     finish_scheduler = 0;
 
     while(1) {
-
-        ///////printf("Inside While\n");
+        printf("Inside While\n");
         if (isEmpty(&ReadyQueue)) {
 
-            // If the termination flag is 1; i.e. no more processes are coming
             if(finish_scheduler) {
-                printf("Empty priority queue (%d) and finish flag is true\n", isEmpty(&ReadyQueue));
+                printf("Empty %d and finish is true\n", isEmpty(&ReadyQueue));
                 break;
             }
 
-            // Wait till you receive a message 
             status = 0;
             while(!status) {
-                printf("Will wait for message\n");
+                printf("Will wait for msg up\n");
                 tempBuffer = receiveMsg(1, &status);
             }
 
+            //printf("Will wait for msg up");
+            //tempBuffer = receiveMsg(1, &status);
+
             if(status) {
-                // Received message  
-                printf("Received process with id %d and pid %d\n", tempBuffer.data.id, tempBuffer.data.pid);
-                
-                // Check if incoming process is a flag
+                //equate(&tempBuffer.data, &tempPCB);    
+                printf("Received id %d pid %d\n", tempBuffer.data.id, tempBuffer.data.pid);
                 if (tempBuffer.data.pid == -10)
                 {
-                    printf("Empty priority queue (%d) and received flag\n", isEmpty(&ReadyQueue));
+                    printf("Empty %d and received -10\n", isEmpty(&ReadyQueue));
                     break;
                 }
                 else {
-
-                    // If process is not flag
                     temp_process_pcb = (PCB *) malloc(sizeof(PCB)); 
                     equate(&tempBuffer.data, temp_process_pcb); 
                     push(&ReadyQueue, temp_process_pcb, temp_process_pcb->priority);
-                    // Push process to the priority queue
-                    printf("Pushed process with id %d and pid %d\n", temp_process_pcb->id, temp_process_pcb->pid);
+                    printf("pushed id %d pid %d is empty %d\n", temp_process_pcb->id, temp_process_pcb->pid,isEmpty(&ReadyQueue));
                 }
             }
             else {
-                printf("Empty priority queue and could not receive messsage\n");
+                printf("Empty and error in receive\n");
             }
         }
 
         status = 0;
         tempBuffer = receiveMsg(0, &status);
         while(status == 1) {
-            printf("Received process with pid %d\n", tempBuffer.data.pid);   
-
-            // Check for flag process
+            printf("pcb pid %d\n", tempBuffer.data.pid);   
+        //    tempPCB = tempBuffer.data;
             if (tempBuffer.data.pid == -10)
             {
                 finish_scheduler = 1;
                 status = 0;
+                //break;
             }
             else {
-                // Not flag process
                 temp_process_pcb = (PCB *) malloc(sizeof(PCB)); 
                 equate(&tempBuffer.data, temp_process_pcb); 
-                // Push process to the priority queue
                 push(&ReadyQueue, temp_process_pcb, temp_process_pcb->priority);
-                printf("Pushed process with id %d and pid %d\n", temp_process_pcb->id, temp_process_pcb->pid);
+                printf("pushed id %d pid %d is empty %d\n", temp_process_pcb->id, temp_process_pcb->pid,isEmpty(&ReadyQueue));
                 status = 0;
                 tempBuffer = receiveMsg(0, &status);
             }
@@ -679,26 +676,25 @@ void HPF(FILE* outLogFile) {
         PCB* currProcessPCB = (PCB *) malloc(sizeof(PCB));      
         int afterPop = pop(&ReadyQueue, currProcessPCB);
         
-        printf("Successful popping (%d). Popped process with id %d and pid %d\n", afterPop, currProcessPCB->id, currProcessPCB->pid);
+        printf("Success pop %d Popped id %d pid %d\n", afterPop, currProcessPCB->id, currProcessPCB->pid);
         if (currProcessPCB->pid == -5) {
             startProcess(currProcessPCB, outLogFile);
             printf("Started id %d pid %d\n", currProcessPCB->id, currProcessPCB->pid);
         }
-        
-        // Wait for current process to terminate
+        //else {
+        //    resumeProcess(currProcessPCB, outLogFile, 0);
+        //}
         int stat;
         pid_t isCurrProccess = waitpid(currProcessPCB->pid, &stat, 0);
         if ((isCurrProccess != currProcessPCB->pid) || !(WIFEXITED(stat))) {
-            printf("Exit code received from process: %d.\n", WEXITSTATUS(stat));
+            printf("Signal received from process %d.\n", WEXITSTATUS(stat));
             if (WIFSIGNALED(stat)) {
-                psignal(WTERMSIG(stat), "Exit signal:");  
+                psignal(WTERMSIG(stat), "Exit signal");  
             }       
         }
-        ///////printf("Exit status from process %d.\n", WIFEXITED(stat));
-        ///////printf("After sleep\n");
+        printf("Signal received from process, exit code %d.\n", WIFEXITED(stat));
+        printf("After sleep\n");
 
-
-        // Extra check on successful termination of the process
         while (!succesful_exit_handler)
         {
             stopProcess(currProcessPCB, outLogFile, 1);
@@ -706,35 +702,32 @@ void HPF(FILE* outLogFile) {
             int stat;
             pid_t isCurrProccess = waitpid(currProcessPCB->pid, &stat, 0);
             if ((isCurrProccess != currProcessPCB->pid) || !(WIFEXITED(stat))) {
-                printf("Exit code received from process: %d.\n", WEXITSTATUS(stat));
+                printf("Signal received from process %d.\n", WEXITSTATUS(stat));
                 if (WIFSIGNALED(stat)) {
-                    psignal(WTERMSIG(stat), "Exit signal:");  
+                    psignal(WTERMSIG(stat), "Exit signal");  
                 }       
             }
-            ///////printf("Exit status from process %d.\n", WIFEXITED(stat));
-            ///////printf("After sleep\n");
+            printf("Signal received from process, exit code %d.\n", WIFEXITED(stat));
+            printf("After sleep\n");
         }
         finishProcess(currProcessPCB, outLogFile);
         
-
         status = 0;
         tempBuffer = receiveMsg(0, &status);
         while(status == 1) {
-            printf("Received process with pid %d\n", tempBuffer.data.pid); 
-
-            // Check for flag process  
+            printf("pcb pid %d\n", tempBuffer.data.pid);   
+        //    tempPCB = tempBuffer.data;
             if (tempBuffer.data.pid == -10)
             {
                 finish_scheduler = 1;
                 status = 0;
+                //break;
             }
             else {
-                // Not flag
                 temp_process_pcb = (PCB *) malloc(sizeof(PCB)); 
                 equate(&tempBuffer.data, temp_process_pcb); 
                 push(&ReadyQueue, temp_process_pcb, temp_process_pcb->priority);
-                // Push process to the priority queue
-                printf("Pushed process with id %d and pid %d\n", temp_process_pcb->id, temp_process_pcb->pid);
+                printf("After push\n");
                 status = 0;
                 tempBuffer = receiveMsg(0, &status);
             }
