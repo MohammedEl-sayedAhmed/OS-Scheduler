@@ -361,9 +361,7 @@ void SRTN(FILE* outLogFile) {
         if(!finish_scheduler) {
             printf("Will wait for message\n");
             status = 0;
-            while(!status) {
-                tempBuffer = receiveMsg(1, &status);
-            }
+            tempBuffer = receiveMsg(1, &status);
         }
         else {
             // No more processes are coming
@@ -385,9 +383,8 @@ void SRTN(FILE* outLogFile) {
 
             printf("Will finish process with id %d\n", currProcessPCB->id);
             finishProcess(currProcessPCB, outLogFile);
-            printf("Finished process with id %d\n", currProcessPCB->id);
         }
-        else if (status == 1) {
+        if (status == 1) {
 
             // A message was received
             // Check for flag process
