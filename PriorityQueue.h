@@ -19,6 +19,7 @@ typedef struct PNode {
 PNode* newNode(void *d, int p) 
 { 
     PNode* temp = (PNode*)malloc(sizeof(PNode)); 
+//    equate(d, temp->data);
     temp->data = d; 
     temp->priority = p; 
     temp->next = NULL; 

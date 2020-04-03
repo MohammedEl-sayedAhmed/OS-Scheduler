@@ -25,7 +25,7 @@ int HPF(FILE* outLogFile);
 struct msgbuff message_hpf;
 void RR(FILE* outLogFile, int Quantum);
 void RRRR(FILE* outLogFile, int Quantum);
-
+int HHH(FILE* outLogFile);
 
 int succesful_exit_handler = 0;   //global variable to store the handler result of exit code
 int finish_scheduler = 0;         //global variable to store if the scheduler should stop (No other processes)
@@ -77,8 +77,9 @@ int main(int argc, char * argv[])
 //    SRTN(outLogFile);
 
 //    HPF(outLogFile);
+      HHH(outLogFile);
 
-    RRRR(outLogFile, 8);
+//    RRRR(outLogFile, 8);
 
     //sleep(1000);
 
@@ -433,7 +434,7 @@ void RRRR(FILE* outLogFile, int Quantum) {
             resumeProcess(currProcessPCB, outLogFile, 0);
         }
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-        if (currProcessPCB->remainingTime < Quantum) {
+        if (currProcessPCB->remainingTime <= Quantum) {
 
             int stat;
             pid_t isCurrProccess = waitpid(currProcessPCB->pid, &stat, 0);
@@ -519,7 +520,134 @@ void RRRR(FILE* outLogFile, int Quantum) {
     return;
 }
 
+int HHH(FILE* outLogFile) {
+    printf("Inside HHH\n");
+    PNode* ReadyQueue = NULL;
+    struct msgbuff tempBuffer;
+    PCB* temp_process_pcb = (PCB *) malloc(sizeof(PCB));
+    int status;
+    finish_scheduler = 0;
 
+    while(1) {
+        printf("Inside While\n");
+        if (isEmpty(&ReadyQueue)) {
+
+            if(finish_scheduler) {
+                printf("Empty %d and finish is true\n", isEmpty(&ReadyQueue));
+                break;
+            }
+
+            status = 0;
+            while(!status) {
+                printf("Will wait for msg up\n");
+                tempBuffer = receiveMsg(1, &status);
+            }
+
+            //printf("Will wait for msg up");
+            //tempBuffer = receiveMsg(1, &status);
+
+            if(status) {
+                //equate(&tempBuffer.data, &tempPCB);    
+                printf("Received id %d pid %d\n", tempBuffer.data.id, tempBuffer.data.pid);
+                if (tempBuffer.data.pid == -10)
+                {
+                    printf("Empty %d and received -10\n", isEmpty(&ReadyQueue));
+                    break;
+                }
+                else {
+                    temp_process_pcb = (PCB *) malloc(sizeof(PCB)); 
+                    equate(&tempBuffer.data, temp_process_pcb); 
+                    push(&ReadyQueue, temp_process_pcb, temp_process_pcb->priority);
+                    printf("pushed id %d pid %d is empty %d\n", temp_process_pcb->id, temp_process_pcb->pid,isEmpty(&ReadyQueue));
+                }
+            }
+            else {
+                printf("Empty and error in receive\n");
+            }
+        }
+
+        status = 0;
+        tempBuffer = receiveMsg(0, &status);
+        while(status == 1) {
+            printf("pcb pid %d\n", tempBuffer.data.pid);   
+        //    tempPCB = tempBuffer.data;
+            if (tempBuffer.data.pid == -10)
+            {
+                finish_scheduler = 1;
+                status = 0;
+                //break;
+            }
+            else {
+                temp_process_pcb = (PCB *) malloc(sizeof(PCB)); 
+                equate(&tempBuffer.data, temp_process_pcb); 
+                push(&ReadyQueue, temp_process_pcb, temp_process_pcb->priority);
+                printf("pushed id %d pid %d is empty %d\n", temp_process_pcb->id, temp_process_pcb->pid,isEmpty(&ReadyQueue));
+                status = 0;
+                tempBuffer = receiveMsg(0, &status);
+            }
+        }
+
+        PCB* currProcessPCB = (PCB *) malloc(sizeof(PCB));      
+        int afterPop = pop(&ReadyQueue, currProcessPCB);
+        
+        printf("Success pop %d Popped id %d pid %d\n", afterPop, currProcessPCB->id, currProcessPCB->pid);
+        if (currProcessPCB->pid == -5) {
+            startProcess(currProcessPCB, outLogFile);
+            printf("Started id %d pid %d\n", currProcessPCB->id, currProcessPCB->pid);
+        }
+        //else {
+        //    resumeProcess(currProcessPCB, outLogFile, 0);
+        //}
+        int stat;
+        pid_t isCurrProccess = waitpid(currProcessPCB->pid, &stat, 0);
+        if ((isCurrProccess != currProcessPCB->pid) || !(WIFEXITED(stat))) {
+            printf("Signal received from process %d.\n", WEXITSTATUS(stat));
+            if (WIFSIGNALED(stat)) {
+                psignal(WTERMSIG(stat), "Exit signal");  
+            }       
+        }
+        printf("Signal received from process, exit code %d.\n", WIFEXITED(stat));
+        printf("After sleep\n");
+
+        while (!succesful_exit_handler)
+        {
+            stopProcess(currProcessPCB, outLogFile, 1);
+            resumeProcess(currProcessPCB, outLogFile, 1);
+            int stat;
+            pid_t isCurrProccess = waitpid(currProcessPCB->pid, &stat, 0);
+            if ((isCurrProccess != currProcessPCB->pid) || !(WIFEXITED(stat))) {
+                printf("Signal received from process %d.\n", WEXITSTATUS(stat));
+                if (WIFSIGNALED(stat)) {
+                    psignal(WTERMSIG(stat), "Exit signal");  
+                }       
+            }
+            printf("Signal received from process, exit code %d.\n", WIFEXITED(stat));
+            printf("After sleep\n");
+        }
+        finishProcess(currProcessPCB, outLogFile);
+
+        status = 0;
+        tempBuffer = receiveMsg(0, &status);
+        while(status == 1) {
+            printf("pcb pid %d\n", tempBuffer.data.pid);   
+        //    tempPCB = tempBuffer.data;
+            if (tempBuffer.data.pid == -10)
+            {
+                finish_scheduler = 1;
+                status = 0;
+                //break;
+            }
+            else {
+                temp_process_pcb = (PCB *) malloc(sizeof(PCB)); 
+                equate(&tempBuffer.data, temp_process_pcb); 
+                push(&ReadyQueue, temp_process_pcb, temp_process_pcb->priority);
+                printf("After push\n");
+                status = 0;
+                tempBuffer = receiveMsg(0, &status);
+            }
+        }
+    }
+}
 
 int HPF(FILE* outLogFile){
     PNode* ReadyQueue = NULL;
@@ -545,7 +673,7 @@ int HPF(FILE* outLogFile){
                 break;
             }
             push(&ReadyQueue, temp_process_pcb, temp_process_pcb->priority);
-    }
+        }
 
         while (1)
         {
