@@ -45,7 +45,7 @@ int enqueue(Queue *q, const void *data)
     return 0;
 }
 
-void dequeue(Queue *q, void *data)
+int dequeue(Queue *q, void *data)
 {
     if(q->sizeOfQueue > 0)
     {
@@ -65,6 +65,10 @@ void dequeue(Queue *q, void *data)
         q->sizeOfQueue--;
         free(temp->data);
         free(temp);
+        return 1;
+    }
+    else {
+        return 0;
     }
 }
 
