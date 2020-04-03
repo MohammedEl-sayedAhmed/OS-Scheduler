@@ -12,6 +12,7 @@
 #include <ctype.h>
 #include <signal.h>
 #include <time.h>
+#include <math.h>
 
 
 void userHandler(int signum);
@@ -25,16 +26,22 @@ void RR(FILE* outLogFile, int Quantum);
 int succesful_exit_handler = 0;   // global variable to store that the child exited successfully
 int finish_scheduler = 0;         // global variable to store if the scheduler should stop (No other processes)
 
-int total_waiting_time = 0;
-int total_proceesing_time = 0;
-int total_WTA = 0;
-int processCount = 0;
+// global variables initialized for calculations
+double total_waiting_time = 0;
+double total_proceesing_time = 0;
+double total_WTA = 0;
+double processCount = 0;
+Queue WTAQueue;
+
+void Standard_deviation(FILE* outCalcFile);
 
 
-//Queue WTAQueue; 
-//queueInit(&WTAQueue, sizeof(int));
-// Create dynamic memory for PCBs
-//int* WTApointer = (int *) malloc(sizeof(int));
+/*
+clock_t befClocks;
+int clksBefAlg;
+clock_t aftClocks;
+int clksAftAlg;
+*/
 
 int main(int argc, char * argv[])
 {
@@ -63,7 +70,6 @@ int main(int argc, char * argv[])
     // Read the passed arguments 
     int quantum;
     char *schedalg = NULL;
-
     if (argc == 2) {
         // Get the chosen algorithm 
         schedalg = argv[0];
@@ -77,19 +83,17 @@ int main(int argc, char * argv[])
     // Initialize message queue 
     initMsgQueue();
 
-    clock_t befClocks;
-    int clksBefAlg;
-    clock_t aftClocks;
-    int clksAftAlg;
+    // Initialize queue of weighted turnaround times
+    queueInit(&WTAQueue, sizeof(double));
 
+    //befClocks = clock();
+    //clksBefAlg = (int) (befClocks/CLOCKS_PER_SEC);
 
     // Run the chosen algorithm
     if(strcmp(schedalg,"HPF") == 0)
     {
         printf("Chosen algorithm is HPF.\n");
 
-//        befClocks = clock();
-//        clksBefAlg = (int) (befClocks/CLOCKS_PER_SEC);
 //        printf("%d",clksBefAlg);
 
         HPF(outLogFile);  
@@ -103,20 +107,24 @@ int main(int argc, char * argv[])
         SRTN(outLogFile);
     }
 
-    printf("Will Close.\n");
+//    printf("Will Close.\n");
 //    aftClocks = clock();
-//    clksAftAlg = (int) (aftClocks/CLOCKS_PER_SEC);
+//    printf("aftttttt %ld, clkk %ld\n", clock(), CLOCKS_PER_SEC);
+//    clksAftAlg = (int) (clock()/CLOCKS_PER_SEC);
 
-//    int totalClkSec = clksAftAlg - clksBefAlg;
+//    int totalClkSec = clksAftAlg;
     
-//    int cpu_utilization=(total_proceesing_time/totalClkSec)*100;
+//    printf("%d   %d\n", total_proceesing_time, totalClkSec);
+//    int cpu_utilization= (int) ((total_proceesing_time/totalClkSec)*100);
 //    fprintf(outCalcFile, "CPU  utilization: %d %% \n", cpu_utilization);
 
-//    int AWTA = total_WTA/processCount;
-//    fprintf(outCalcFile,"Avg WTA = %d\n", AWTA);
+    double AWTA = (double) (total_WTA/processCount);
+    fprintf(outCalcFile,"Avg WTA = %.2f\n", AWTA);
 
-//    int Avg_waiting=total_waiting_time/processCount;
-//    fprintf(outCalcFile,"Avg Waiting = %d \n",Avg_waiting);
+    double Avg_waiting= (double) (total_waiting_time/processCount);
+    fprintf(outCalcFile,"Avg Waiting = %.2f \n",Avg_waiting);
+
+    Standard_deviation(outCalcFile);
 
 
     // Close the output log and calculations file
@@ -187,8 +195,8 @@ void stopProcess(PCB* processPCB, FILE* outLogFile, bool silent) {
     // Send a stop signal to the process
     kill(processPCB->pid, SIGSTOP);
 
-    printf("Inside stop id %d pid %d\n", processPCB->id, processPCB-> pid);
     // Calculate and update the process remaining time and state
+    printf("Inside stop id %d pid %d\n", processPCB->id, processPCB-> pid);
     int currTime = getClk();
     processPCB->remainingTime = (processPCB->runTime) -  (currTime - processPCB->arrivalTime - processPCB->waitingTime);
     processPCB->state = WAITING;
@@ -208,15 +216,19 @@ void finishProcess(PCB* processPCB, FILE* outLogFile)
     processPCB->finishTime = processPCB->arrivalTime + processPCB->waitingTime + processPCB->runTime;
     processPCB->state = FINISHED;
 
-    int turn_around_time = processPCB->finishTime - processPCB->arrivalTime;
-    int w_turn_around_time = turn_around_time/(processPCB->runTime);
+    double turn_around_time = currTime - processPCB->arrivalTime;
+    double w_turn_around_time = turn_around_time/((double)(processPCB->runTime));
 
     total_waiting_time = total_waiting_time + processPCB->waitingTime;
     total_WTA = total_WTA + w_turn_around_time;
     total_proceesing_time = total_proceesing_time + processPCB->runTime;
     processCount++;
 
-    fprintf(outLogFile, "At time %d process %d finished arr %d total %d remain %d wait %d TA %d WTA %d\n", currTime, processPCB->id, processPCB->arrivalTime, processPCB->runTime, processPCB->remainingTime, processPCB->waitingTime, turn_around_time, w_turn_around_time);
+    double* WTApointer = (double *) malloc(sizeof(double));
+    *WTApointer =  w_turn_around_time;
+    enqueue(&WTAQueue, WTApointer);
+
+    fprintf(outLogFile, "At time %d process %d finished arr %d total %d remain %d wait %d TA %.0f WTA %.2f\n", currTime, processPCB->id, processPCB->arrivalTime, processPCB->runTime, processPCB->remainingTime, processPCB->waitingTime, turn_around_time, w_turn_around_time);
     free(processPCB);
     processPCB = NULL;
     succesful_exit_handler = 0;
@@ -225,6 +237,27 @@ void finishProcess(PCB* processPCB, FILE* outLogFile)
 void userHandler(int signum) {
     printf("Process successfully terminated.\n");
     succesful_exit_handler = 1;
+}
+
+void Standard_deviation(FILE* outCalcFile)
+{
+    printf("%f countttt\n", processCount);
+    double AWTA = (double) (total_WTA/processCount);
+    //Dequeuing from WTAQueue to calculate standard deviation :
+    double currDouble;
+    double SD_numerator = 0;
+
+    while (getQueueSize(&WTAQueue) != 0) {
+        int val= dequeue(&WTAQueue,&currDouble);
+        printf("pointer value %f \n",currDouble);
+        
+        double powerResult = pow((currDouble-AWTA), 2);
+        SD_numerator += powerResult;
+    }
+
+    double SD = sqrt(((double) (SD_numerator/processCount)));
+    //need to print in file
+    fprintf(outCalcFile, "Std WTA = %.2f\n", SD);
 }
 
 // Shortest Remaining Time Next Algorithm
@@ -552,6 +585,7 @@ void RR(FILE* outLogFile, int Quantum) {
         }  
     }
     printf("Outside While\n");
+
     return;
 }
 
