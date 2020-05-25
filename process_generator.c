@@ -131,7 +131,7 @@ pid_t createScheduler(char * const * argv){
 
         // Run scheduler.out
         printf("Creating scheduler.\n");
-        execv("./Scheduler.out", argv); // argv is the list of arguments to pass (scheduling algorithm + necessary parameters)
+        execv("./scheduler.out", argv); // argv is the list of arguments to pass (scheduling algorithm + necessary parameters)
     }
     return schedulerPID;  
 }
