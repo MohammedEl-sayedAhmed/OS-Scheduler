@@ -82,6 +82,10 @@ The scheduler writes two output files:
 - `SchedulerCalc.txt` — aggregate metrics: CPU utilization, average weighted turnaround
   time, average waiting time, and the standard deviation of weighted turnaround time.
 
+A captured sample run for each algorithm is kept as reference evidence in
+[`examples/sample-output/`](examples/sample-output/) — the `hpf-*`, `srtn-*`, and `rr-*`
+scheduler-log / metrics pairs.
+
 ## Input format (`processes.txt`)
 
 A header line beginning with `#`, followed by one line per process with four
