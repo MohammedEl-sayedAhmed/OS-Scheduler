@@ -110,6 +110,6 @@ Additional sample inputs are kept in the `examples/` directory.
 ## Authors
 
 - [Mohammed El-sayed Ahmed](https://github.com/MohammedEl-sayedAhmed)
-- [Nadine Amr](https://github.com/nadine-amr)
+- [Nadine Amin](https://github.com/nadine-amin)
 - [Rahma](https://github.com/Rahma2015)
 - [Tasneem Omara](https://github.com/TasneemOmara)
