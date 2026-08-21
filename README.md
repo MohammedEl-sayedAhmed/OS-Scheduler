@@ -7,7 +7,7 @@ them under one of three classic algorithms while an emulated clock drives the ti
 > **Phase 1 of a two-phase project.** This repository implements the CPU scheduler.
 > Phase 2 adds a memory manager on top of the same simulation and is the more complete,
 > later artifact — see
-> [OS-MemoryManagment](https://github.com/MohammedEl-sayedAhmed/OS-MemoryManagment).
+> [os-memory-management](https://github.com/MohammedEl-sayedAhmed/os-memory-management).
 
 ## Overview
 
@@ -15,15 +15,16 @@ The simulation is split into four cooperating programs that run as separate proc
 
 | Component | Source | Role |
 |-----------|--------|------|
-| Process generator | `process_generator.c` | Reads `processes.txt`, prompts for the algorithm (and quantum for RR), forks the clock and the scheduler, then releases each process to the scheduler at its arrival time. |
-| Clock | `clk.c` | An emulated system clock. Holds a single integer in shared memory and increments it once per real second. |
-| Scheduler | `scheduler.c` | Receives processes from the generator, runs the chosen algorithm, forks a worker per process, preempts/resumes them, logs events, and computes performance metrics. |
-| Process | `process.c` | A workload process. Attaches to the clock and busy-waits until its assigned run time has elapsed, then signals the scheduler that it has finished. |
+| Process generator | `src/process_generator.c` | Reads `processes.txt`, prompts for the algorithm (and quantum for RR), forks the clock and the scheduler, then releases each process to the scheduler at its arrival time. |
+| Clock | `src/clk.c` | An emulated system clock. Holds a single integer in shared memory and increments it once per real second. |
+| Scheduler | `src/scheduler.c` | Receives processes from the generator, runs the chosen algorithm, forks a worker per process, preempts/resumes them, logs events, and computes performance metrics. |
+| Process | `src/process.c` | A workload process. Attaches to the clock and busy-waits until its assigned run time has elapsed, then signals the scheduler that it has finished. |
 
 Supporting data structures live in headers: a generic linked-list queue
-(`Queue.c` / `Queue.h`), a linked-list priority queue (`PriorityQueue.h`), and the
-process control block (`PCB.h`). `headers.h` holds the clock and message-queue helpers
-shared by every component. `test_generator.c` is a small utility that writes a random
+(`src/Queue.c` / `include/Queue.h`), a linked-list priority queue
+(`include/PriorityQueue.h`), and the process control block (`include/PCB.h`).
+`include/headers.h` holds the clock and message-queue helpers shared by every
+component. `src/test_generator.c` is a small utility that writes a random
 `processes.txt`.
 
 ## Scheduling algorithms
