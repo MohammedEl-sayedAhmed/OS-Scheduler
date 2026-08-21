@@ -1,0 +1,11 @@
+# Compiled binaries and objects
+*.out
+*.o
+
+# Generated scheduler output
+SchedulerLog*.txt
+SchedulerCalc*.txt
+Output.txt
+
+# Generated input (a sample processes.txt is kept as a fixture)
+processes.txt

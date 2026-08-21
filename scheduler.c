@@ -46,15 +46,13 @@ int main(int argc, char * argv[])
     
   
     // Open an output file for the scheduler log (in the write mode)
-    FILE* outLogFile = (FILE *) malloc(sizeof(FILE));
-    outLogFile = fopen("SchedulerLog.txt", "w");
+    FILE* outLogFile = fopen("SchedulerLog.txt", "w");
     if (outLogFile == NULL) {
         printf("Could not open output file for scheduler log.\n");
     }
 
     // Open an output file for the scheduler calculations (in the write mode)
-    FILE* outCalcFile = (FILE *) malloc(sizeof(FILE));
-    outCalcFile = fopen("SchedulerCalc.txt", "w");
+    FILE* outCalcFile = fopen("SchedulerCalc.txt", "w");
     if (outCalcFile == NULL) {
         printf("Could not open output file for scheduler calculations.\n");
     }
