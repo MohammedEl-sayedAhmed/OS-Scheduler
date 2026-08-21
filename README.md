@@ -109,7 +109,7 @@ Additional sample inputs are kept in the `examples/` directory.
 
 ## Authors
 
-- Mohammed El-sayed Ahmed
-- Nadine-Amr
-- Rahma2015
-- TasneemOmara
+- [Mohammed El-sayed Ahmed](https://github.com/MohammedEl-sayedAhmed)
+- [Nadine Amr](https://github.com/nadine-amr)
+- [Rahma](https://github.com/Rahma2015)
+- [Tasneem Omara](https://github.com/TasneemOmara)
